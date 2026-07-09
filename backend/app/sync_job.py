@@ -83,7 +83,12 @@ def _build_details(vehicle: dict, stats: dict) -> dict:
     def c_to_f(milli_c):
         return _round(milli_c / 1000 * 9 / 5 + 32) if isinstance(milli_c, (int, float)) else None
 
+    gps = stats.get("gps") or {}
+    location = (gps.get("reverseGeo") or {}).get("formattedLocation")
+
     return {
+        # location (human-readable address from Samsara reverse-geo)
+        "location": location,
         # static
         "vin": vehicle.get("vin"),
         "make": vehicle.get("make"),
