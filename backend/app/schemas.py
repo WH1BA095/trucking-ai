@@ -45,6 +45,7 @@ class AlertOut(BaseModel):
     location: Optional[str] = None
     alert_level: str
     drivable: bool
+    max_severity: Optional[str] = None
     lamps: list[str] = []
     fault_codes: Optional[Any] = None
     message: str

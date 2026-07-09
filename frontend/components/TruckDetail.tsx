@@ -7,8 +7,8 @@ import { useLang } from "../lib/i18n";
 function Field({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div>
-      <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 0.4, color: "#9ca3af" }}>{label}</div>
-      <div style={{ fontSize: 15, color: "#111827", marginTop: 2 }}>{value}</div>
+      <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 0.4, color: "var(--muted)" }}>{label}</div>
+      <div style={{ fontSize: 15, color: "var(--text)", marginTop: 2 }}>{value}</div>
     </div>
   );
 }
@@ -16,7 +16,7 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div style={{ marginTop: 22 }}>
-      <div style={{ fontSize: 13, fontWeight: 600, color: "#374151", marginBottom: 10 }}>{title}</div>
+      <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", marginBottom: 10 }}>{title}</div>
       {children}
     </div>
   );
@@ -27,18 +27,18 @@ function Grid({ children }: { children: React.ReactNode }) {
 }
 
 function FaultRow({ f, unknown }: { f: FaultCode; unknown: string }) {
-  const sev = f.severity === "high" ? "#b91c1c" : f.severity === "medium" ? "#d97706" : "#6b7280";
+  const sev = f.severity === "high" ? "#b91c1c" : f.severity === "medium" ? "#d97706" : "var(--muted)";
   return (
-    <div style={{ border: "1px solid #fee2e2", background: "#fff5f5", borderRadius: 8, padding: "8px 10px", marginTop: 8 }}>
+    <div style={{ border: "1px solid var(--fault-border)", background: "var(--fault-bg)", borderRadius: 8, padding: "8px 10px", marginTop: 8 }}>
       <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
-        <span style={{ fontWeight: 600, color: "#b91c1c", fontSize: 14 }}>
+        <span style={{ fontWeight: 600, color: "var(--fault-title)", fontSize: 14 }}>
           <span style={{ display: "inline-block", width: 7, height: 7, borderRadius: "50%", background: sev, marginRight: 6 }} />
           {f.fault || f.description || "Fault"}
         </span>
-        {f.count != null && <span style={{ fontSize: 12, color: "#9ca3af", whiteSpace: "nowrap" }}>×{f.count}</span>}
+        {f.count != null && <span style={{ fontSize: 12, color: "var(--muted)", whiteSpace: "nowrap" }}>×{f.count}</span>}
       </div>
-      {f.source && <div style={{ fontSize: 13, color: "#6b7280", marginTop: 2 }}>{f.source}</div>}
-      <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 4, fontFamily: "ui-monospace, monospace" }}>
+      {f.source && <div style={{ fontSize: 13, color: "var(--muted)", marginTop: 2 }}>{f.source}</div>}
+      <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4, fontFamily: "ui-monospace, monospace" }}>
         SPN {f.spn ?? unknown} · FMI {f.fmi ?? unknown}
       </div>
     </div>
@@ -60,7 +60,7 @@ export default function TruckDetail({ vehicle, onReportCreated }: { vehicle: Veh
 
   if (!vehicle) {
     return (
-      <div style={{ padding: 24, color: "#9ca3af", fontSize: 14, textAlign: "center", marginTop: 40 }}>
+      <div style={{ padding: 24, color: "var(--muted)", fontSize: 14, textAlign: "center", marginTop: 40 }}>
         {t("detail.selectPrompt")}
       </div>
     );
@@ -90,14 +90,14 @@ export default function TruckDetail({ vehicle, onReportCreated }: { vehicle: Veh
   return (
     <div style={{ padding: 20, overflowY: "auto", height: "100%", boxSizing: "border-box" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <h2 style={{ margin: 0, fontSize: 22, color: "#111827" }}>{t("detail.truck")} {vehicle.name}</h2>
+        <h2 style={{ margin: 0, fontSize: 22, color: "var(--text)" }}>{t("detail.truck")} {vehicle.name}</h2>
         <span style={{ background: color, color: "#fff", fontSize: 12, fontWeight: 600, padding: "3px 10px", borderRadius: 999 }}>{label}</span>
       </div>
 
       <button
         onClick={handleReport}
         disabled={reporting}
-        style={{ marginTop: 14, width: "100%", padding: "10px 14px", background: reporting ? "#9ca3af" : "#1F4E79", color: "#fff", border: "none", borderRadius: 8, fontWeight: 600, fontSize: 14, cursor: reporting ? "default" : "pointer" }}
+        style={{ marginTop: 14, width: "100%", padding: "10px 14px", background: reporting ? "var(--muted)" : "#1F4E79", color: "#fff", border: "none", borderRadius: 8, fontWeight: 600, fontSize: 14, cursor: reporting ? "default" : "pointer" }}
       >
         {reporting ? t("detail.generating") : `📋 ${t("detail.genReport")}`}
       </button>
@@ -141,7 +141,7 @@ export default function TruckDetail({ vehicle, onReportCreated }: { vehicle: Veh
         {d.tags && d.tags.length > 0 && (
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 12 }}>
             {d.tags.map((tag) => (
-              <span key={tag} style={{ background: "#eef2ff", color: "#3730a3", fontSize: 12, padding: "2px 8px", borderRadius: 999 }}>{tag}</span>
+              <span key={tag} style={{ background: "var(--chip-bg)", color: "var(--chip-text)", fontSize: 12, padding: "2px 8px", borderRadius: 999 }}>{tag}</span>
             ))}
           </div>
         )}
@@ -161,7 +161,7 @@ export default function TruckDetail({ vehicle, onReportCreated }: { vehicle: Veh
         </Section>
       )}
 
-      {updated && <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 22 }}>{t("detail.updated")} {updated}</div>}
+      {updated && <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 22 }}>{t("detail.updated")} {updated}</div>}
     </div>
   );
 }

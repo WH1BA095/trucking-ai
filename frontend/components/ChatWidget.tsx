@@ -38,13 +38,13 @@ export default function ChatWidget() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
-      <div style={{ padding: "12px 16px", borderBottom: "1px solid #e5e7eb", fontWeight: 600, color: "#111827" }}>
+      <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--border)", fontWeight: 600, color: "var(--text)" }}>
         💬 {t("chat.title")}
       </div>
 
-      <div ref={scrollRef} style={{ flex: 1, overflowY: "auto", padding: 14, background: "#fafafa" }}>
+      <div ref={scrollRef} style={{ flex: 1, overflowY: "auto", padding: 14, background: "var(--panel2)" }}>
         {msgs.length === 0 && !loading && (
-          <div style={{ color: "#9ca3af", fontSize: 13, textAlign: "center", marginTop: 24, whiteSpace: "pre-line" }}>
+          <div style={{ color: "var(--muted)", fontSize: 13, textAlign: "center", marginTop: 24, whiteSpace: "pre-line" }}>
             {t("chat.empty")}
           </div>
         )}
@@ -56,8 +56,8 @@ export default function ChatWidget() {
                 padding: "8px 12px",
                 borderRadius: 12,
                 background: m.role === "user" ? "#1F4E79" : "#fff",
-                color: m.role === "user" ? "#fff" : "#111827",
-                border: m.role === "user" ? "none" : "1px solid #e5e7eb",
+                color: m.role === "user" ? "#fff" : "var(--text)",
+                border: m.role === "user" ? "none" : "1px solid var(--border)",
                 maxWidth: "85%",
                 fontSize: 14,
                 lineHeight: 1.45,
@@ -69,10 +69,10 @@ export default function ChatWidget() {
             </span>
           </div>
         ))}
-        {loading && <div style={{ color: "#9ca3af", fontSize: 13, fontStyle: "italic" }}>{t("chat.thinking")}</div>}
+        {loading && <div style={{ color: "var(--muted)", fontSize: 13, fontStyle: "italic" }}>{t("chat.thinking")}</div>}
       </div>
 
-      <div style={{ display: "flex", gap: 8, padding: 12, borderTop: "1px solid #e5e7eb" }}>
+      <div style={{ display: "flex", gap: 8, padding: 12, borderTop: "1px solid var(--border)" }}>
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
@@ -81,10 +81,12 @@ export default function ChatWidget() {
           style={{
             flex: 1,
             padding: "9px 12px",
-            border: "1px solid #d1d5db",
+            border: "1px solid var(--border)",
             borderRadius: 8,
             fontSize: 14,
             outline: "none",
+            background: "var(--panel)",
+            color: "var(--text)",
           }}
         />
         <button
@@ -92,7 +94,7 @@ export default function ChatWidget() {
           disabled={loading}
           style={{
             padding: "9px 16px",
-            background: loading ? "#9ca3af" : "#1F4E79",
+            background: loading ? "var(--muted)" : "#1F4E79",
             color: "#fff",
             border: "none",
             borderRadius: 8,

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { fetchVehicles, fetchRoute, Vehicle, STATUS_META } from "../lib/api";
 import { useLang } from "../lib/i18n";
+import { useTheme } from "../lib/theme";
 import TruckDetail from "../components/TruckDetail";
 import ChatWidget from "../components/ChatWidget";
 import ReportsView from "../components/ReportsView";
@@ -24,8 +25,8 @@ function Metric({ label, value, color, active, onClick }: { label: string; value
       }}
     >
       <span style={{ width: 9, height: 9, borderRadius: "50%", background: active ? "#fff" : color, display: "inline-block" }} />
-      <span style={{ fontWeight: 700, fontSize: 15, color: active ? "#fff" : "#111827" }}>{value}</span>
-      <span style={{ color: active ? "rgba(255,255,255,.85)" : "#9ca3af", fontSize: 13 }}>{label}</span>
+      <span style={{ fontWeight: 700, fontSize: 15, color: active ? "#fff" : "var(--text)" }}>{value}</span>
+      <span style={{ color: active ? "rgba(255,255,255,.85)" : "var(--muted)", fontSize: 13 }}>{label}</span>
     </button>
   );
 }
@@ -46,6 +47,7 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
 
 export default function Home() {
   const { t, lang, setLang } = useLang();
+  const { theme, toggle } = useTheme();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [selected, setSelected] = useState<Vehicle | null>(null);
   const [route, setRoute] = useState<[number, number][]>([]);
@@ -83,7 +85,7 @@ export default function Home() {
   const shown = filter ? vehicles.filter((v) => v.status === filter) : vehicles;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100vh", background: "#f3f4f6" }}>
+    <div style={{ display: "flex", flexDirection: "column", height: "100vh", background: "var(--bg)" }}>
       <header
         style={{
           display: "flex", alignItems: "center", justifyContent: "space-between",
@@ -107,7 +109,7 @@ export default function Home() {
               ✕ {t("filter.reset")}
             </button>
           )}
-          <div style={{ display: "flex", gap: 4, background: "#fff", padding: "3px 6px", borderRadius: 999 }}>
+          <div style={{ display: "flex", gap: 4, background: "var(--panel)", padding: "3px 6px", borderRadius: 999 }}>
             <Metric label={t("metric.total")} value={vehicles.length} color="#1F4E79" active={filter === null} onClick={() => setFilter(null)} />
             <Metric label={t("metric.moving")} value={count("moving")} color={STATUS_META.moving.color} active={filter === "moving"} onClick={() => setFilter("moving")} />
             <Metric label={t("metric.idle")} value={count("idle")} color={STATUS_META.idle.color} active={filter === "idle"} onClick={() => setFilter("idle")} />
@@ -119,6 +121,13 @@ export default function Home() {
           >
             {lang === "en" ? "RU" : "EN"}
           </button>
+          <button
+            onClick={toggle}
+            title="Toggle theme"
+            style={{ background: "rgba(255,255,255,.15)", color: "#fff", border: "1px solid rgba(255,255,255,.4)", borderRadius: 8, padding: "6px 10px", fontSize: 15, cursor: "pointer", lineHeight: 1 }}
+          >
+            {theme === "light" ? "🌙" : "☀️"}
+          </button>
         </div>
       </header>
 
@@ -129,21 +138,21 @@ export default function Home() {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <TruckMap vehicles={shown} selectedId={selected?.id ?? null} route={route} onSelect={setSelected} />
               </div>
-              <div style={{ width: 340, background: "#fff", borderLeft: "1px solid #e5e7eb", flexShrink: 0 }}>
+              <div style={{ width: 340, background: "var(--panel)", borderLeft: "1px solid var(--border)", flexShrink: 0 }}>
                 <TruckDetail vehicle={selected} onReportCreated={() => setTab("reports")} />
               </div>
             </>
           ) : tab === "reports" ? (
-            <div style={{ flex: 1, minWidth: 0, background: "#f3f4f6" }}>
+            <div style={{ flex: 1, minWidth: 0, background: "var(--bg)" }}>
               <ReportsView vehicles={vehicles} />
             </div>
           ) : (
-            <div style={{ flex: 1, minWidth: 0, background: "#f3f4f6" }}>
+            <div style={{ flex: 1, minWidth: 0, background: "var(--bg)" }}>
               <AlertsView onSelectTruck={(id) => { const v = vehicles.find((x) => x.id === id); if (v) { setSelected(v); setTab("map"); } }} />
             </div>
           )}
         </div>
-        <div style={{ width: tab === "alerts" ? 520 : 360, background: "#fff", borderLeft: "1px solid #e5e7eb", flexShrink: 0, transition: "width .2s" }}>
+        <div style={{ width: tab === "alerts" ? 520 : 360, background: "var(--panel)", borderLeft: "1px solid var(--border)", flexShrink: 0, transition: "width .2s" }}>
           <ChatWidget />
         </div>
       </div>

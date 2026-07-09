@@ -10,14 +10,25 @@ router = APIRouter(prefix="/alerts", tags=["alerts"])
 
 # Only these levels are shown as alerts; "info"/"ok" are not actionable.
 ALERT_LEVELS = {"critical": 0, "warning": 1, "emissions": 2}
+SEV_RANK = {"high": 0, "medium": 1, "low": 2}
+
+
+def _max_severity(fault_codes) -> str | None:
+    """Highest per-code severity on the vehicle (high > medium > low)."""
+    sevs = {c.get("severity") for c in (fault_codes or [])}
+    for s in ("high", "medium", "low"):
+        if s in sevs:
+            return s
+    return None
 
 
 @router.get("", response_model=list[AlertOut])
 def list_alerts(db: Session = Depends(get_db)):
     """Vehicles with an active fault lamp, most severe first.
 
-    Severity comes from the J1939 lamp hierarchy computed in sync_job
-    (critical = red STOP = not drivable; warning/emissions = drivable).
+    Two dimensions: the J1939 lamp level (drivability — critical = red STOP =
+    not drivable) and the worst individual fault-code severity. Sorted by lamp
+    level, then by worst code severity, so high-severity faults surface first.
     """
     out = []
     for v in db.query(Vehicle).all():
@@ -35,9 +46,10 @@ def list_alerts(db: Session = Depends(get_db)):
             location=d.get("location"),
             alert_level=level,
             drivable=drivable,
+            max_severity=_max_severity(v.fault_codes),
             lamps=d.get("lamps") or [],
             fault_codes=v.fault_codes,
             message=build_alert_message(v, d) if level == "critical" else "",
         ))
-    out.sort(key=lambda a: (ALERT_LEVELS[a.alert_level], a.name))
+    out.sort(key=lambda a: (ALERT_LEVELS[a.alert_level], SEV_RANK.get(a.max_severity, 3), a.name))
     return out

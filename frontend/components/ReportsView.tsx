@@ -87,84 +87,84 @@ export default function ReportsView({ vehicles }: { vehicles: Vehicle[] }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
       <style>{`
-        .report-md h1 { font-size: 18px; margin: 4px 0 10px; color: #111827; }
-        .report-md h2 { font-size: 15px; margin: 16px 0 6px; color: #1f2937; }
-        .report-md h3 { font-size: 14px; margin: 12px 0 4px; color: #374151; }
+        .report-md h1 { font-size: 18px; margin: 4px 0 10px; color: var(--text); }
+        .report-md h2 { font-size: 15px; margin: 16px 0 6px; color: var(--text); }
+        .report-md h3 { font-size: 14px; margin: 12px 0 4px; color: var(--text); }
         .report-md p { margin: 6px 0; }
         .report-md ul { margin: 6px 0; padding-left: 20px; }
         .report-md li { margin: 2px 0; }
         .report-md table { border-collapse: collapse; margin: 10px 0; width: 100%; }
-        .report-md th, .report-md td { border: 1px solid #e5e7eb; padding: 5px 9px; text-align: left; font-size: 13px; }
-        .report-md th { background: #f9fafb; font-weight: 600; }
-        .report-md code { background: #f3f4f6; padding: 1px 4px; border-radius: 4px; font-size: 13px; }
+        .report-md th, .report-md td { border: 1px solid var(--border); padding: 5px 9px; text-align: left; font-size: 13px; }
+        .report-md th { background: var(--panel2); font-weight: 600; }
+        .report-md code { background: var(--bg); padding: 1px 4px; border-radius: 4px; font-size: 13px; }
       `}</style>
 
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 16px", borderBottom: "1px solid #e5e7eb", background: "#fff" }}>
-        <div style={{ fontSize: 13, color: "#6b7280" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 16px", borderBottom: "1px solid var(--border)", background: "var(--panel)" }}>
+        <div style={{ fontSize: 13, color: "var(--muted)" }}>
           {reports.length} {t("reports.reportsWord")} · {groups.length} {t("reports.trucksWord")}
         </div>
         <button
           onClick={generateAll}
           disabled={generating}
-          style={{ padding: "8px 14px", background: generating ? "#9ca3af" : "#1F4E79", color: "#fff", border: "none", borderRadius: 8, fontWeight: 600, fontSize: 13, cursor: generating ? "default" : "pointer" }}
+          style={{ padding: "8px 14px", background: generating ? "var(--muted)" : "#1F4E79", color: "#fff", border: "none", borderRadius: 8, fontWeight: 600, fontSize: 13, cursor: generating ? "default" : "pointer" }}
         >
           {generating ? t("reports.generatingAll") : t("reports.generateAll")}
         </button>
       </div>
 
       {loading ? (
-        <div style={{ padding: 24, color: "#9ca3af" }}>{t("reports.loading")}</div>
+        <div style={{ padding: 24, color: "var(--muted)" }}>{t("reports.loading")}</div>
       ) : groups.length === 0 ? (
-        <div style={{ padding: 40, textAlign: "center", color: "#9ca3af", maxWidth: 460, margin: "40px auto" }}>
+        <div style={{ padding: 40, textAlign: "center", color: "var(--muted)", maxWidth: 460, margin: "40px auto" }}>
           <div style={{ fontSize: 40 }}>📋</div>
-          <div style={{ fontSize: 16, fontWeight: 600, color: "#374151", marginTop: 8 }}>{t("reports.noReportsTitle")}</div>
+          <div style={{ fontSize: 16, fontWeight: 600, color: "var(--text)", marginTop: 8 }}>{t("reports.noReportsTitle")}</div>
           <div style={{ fontSize: 14, marginTop: 6 }}>{t("reports.noReportsHint")}</div>
         </div>
       ) : (
         <div style={{ display: "flex", flex: 1, minHeight: 0 }}>
-          <div style={{ width: 260, borderRight: "1px solid #e5e7eb", overflowY: "auto", background: "#fff", flexShrink: 0 }}>
-            <div style={{ padding: "12px 16px", fontSize: 12, textTransform: "uppercase", letterSpacing: 0.5, color: "#9ca3af" }}>
+          <div style={{ width: 260, borderRight: "1px solid var(--border)", overflowY: "auto", background: "var(--panel)", flexShrink: 0 }}>
+            <div style={{ padding: "12px 16px", fontSize: 12, textTransform: "uppercase", letterSpacing: 0.5, color: "var(--muted)" }}>
               {t("reports.trucksWithReports")}
             </div>
             {groups.map((g) => (
               <div
                 key={g.id}
                 onClick={() => setSelectedId(g.id)}
-                style={{ padding: "12px 16px", cursor: "pointer", borderLeft: g.id === activeId ? "3px solid #1F4E79" : "3px solid transparent", background: g.id === activeId ? "#f3f6fb" : "transparent", display: "flex", justifyContent: "space-between", alignItems: "center" }}
+                style={{ padding: "12px 16px", cursor: "pointer", borderLeft: g.id === activeId ? "3px solid #1F4E79" : "3px solid transparent", background: g.id === activeId ? "var(--panel2)" : "transparent", display: "flex", justifyContent: "space-between", alignItems: "center" }}
               >
-                <span style={{ fontWeight: 600, color: "#111827" }}>{t("detail.truck")} {g.name}</span>
-                <span style={{ fontSize: 12, color: "#6b7280", background: "#eef2ff", borderRadius: 999, padding: "1px 8px" }}>{g.reports.length}</span>
+                <span style={{ fontWeight: 600, color: "var(--text)" }}>{t("detail.truck")} {g.name}</span>
+                <span style={{ fontSize: 12, color: "var(--muted)", background: "var(--chip-bg)", borderRadius: 999, padding: "1px 8px" }}>{g.reports.length}</span>
               </div>
             ))}
           </div>
 
           <div style={{ flex: 1, overflowY: "auto", minWidth: 0 }}>
             {activeVehicle && (
-              <div style={{ borderBottom: "8px solid #f3f4f6" }}>
+              <div style={{ borderBottom: "8px solid var(--bg)" }}>
                 <TruckDetail vehicle={activeVehicle} onReportCreated={() => refetch()} />
               </div>
             )}
             <div style={{ padding: 20 }}>
-              <div style={{ fontSize: 15, fontWeight: 700, color: "#111827", marginBottom: 12 }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", marginBottom: 12 }}>
                 {t("reports.reports")} ({activeReports.length})
               </div>
               {activeReports.map((r, i) => {
                 const delta = deltaLine(r, activeReports[i + 1], t("reports.noChange"));
                 const body = lang === "ru" ? r.content_ru : r.content_en;
                 return (
-                  <div key={r.id} style={{ border: "1px solid #e5e7eb", borderRadius: 10, padding: 16, marginBottom: 14, background: "#fff" }}>
+                  <div key={r.id} style={{ border: "1px solid var(--border)", borderRadius: 10, padding: 16, marginBottom: 14, background: "var(--panel)" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8 }}>
-                      <span style={{ fontWeight: 600, color: "#111827", fontSize: 15 }}>{r.title}</span>
-                      <span style={{ fontSize: 12, color: "#9ca3af", whiteSpace: "nowrap" }}>
+                      <span style={{ fontWeight: 600, color: "var(--text)", fontSize: 15 }}>{r.title}</span>
+                      <span style={{ fontSize: 12, color: "var(--muted)", whiteSpace: "nowrap" }}>
                         {r.created_at ? new Date(r.created_at).toLocaleString() : ""}
                       </span>
                     </div>
                     {delta && (
-                      <div style={{ marginTop: 8, fontSize: 12, color: "#374151", background: "#f3f6fb", borderRadius: 6, padding: "4px 10px", display: "inline-block" }}>
+                      <div style={{ marginTop: 8, fontSize: 12, color: "var(--text)", background: "var(--panel2)", borderRadius: 6, padding: "4px 10px", display: "inline-block" }}>
                         {t("reports.sincePrevious")}: {delta}
                       </div>
                     )}
-                    <div className="report-md" style={{ fontSize: 14, color: "#374151", lineHeight: 1.5, marginTop: 10 }}>
+                    <div className="report-md" style={{ fontSize: 14, color: "var(--text)", lineHeight: 1.5, marginTop: 10 }}>
                       <ReactMarkdown remarkPlugins={[remarkGfm]}>{body}</ReactMarkdown>
                     </div>
                   </div>

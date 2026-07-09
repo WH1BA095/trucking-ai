@@ -57,6 +57,7 @@ export type Alert = {
   location: string | null;
   alert_level: "critical" | "warning" | "emissions";
   drivable: boolean;
+  max_severity: "high" | "medium" | "low" | null;
   lamps: string[];
   fault_codes: FaultCode[] | null;
   message: string;
