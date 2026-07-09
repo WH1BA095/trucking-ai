@@ -143,7 +143,7 @@ export default function Home() {
             </div>
           )}
         </div>
-        <div style={{ width: 360, background: "#fff", borderLeft: "1px solid #e5e7eb", flexShrink: 0 }}>
+        <div style={{ width: tab === "alerts" ? 520 : 360, background: "#fff", borderLeft: "1px solid #e5e7eb", flexShrink: 0, transition: "width .2s" }}>
           <ChatWidget />
         </div>
       </div>
