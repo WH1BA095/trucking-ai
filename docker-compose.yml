@@ -1,0 +1,30 @@
+version: "3.9"
+
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-localpass}
+      POSTGRES_DB: ${POSTGRES_DB:-trucking_agent}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:
+
+# Notes:
+# - Locally: only "db" runs in Docker. Backend and frontend run natively
+#   (uvicorn --reload, npm run dev) so you get fast reload during development.
+# - On hosting (Railway/Render/etc.): you point DATABASE_URL at their managed
+#   Postgres instead of this container, or add backend/frontend services here
+#   with their own Dockerfiles later. No code changes needed either way,
+#   because the backend only ever reads DATABASE_URL from the environment.
