@@ -37,6 +37,9 @@ class Settings(BaseSettings):
     sync_interval_seconds: int = 300
     allowed_origins: str = "http://localhost:3000"
 
+    # Admin alerts (SMS not wired yet — see app/notifications.py)
+    admin_phone: str = ""
+
     @property
     def allowed_origins_list(self) -> list[str]:
         return [o.strip() for o in self.allowed_origins.split(",") if o.strip()]

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { sendChatMessage } from "../lib/api";
+import { useLang } from "../lib/i18n";
 
 type Msg = { role: "user" | "assistant"; text: string };
 
@@ -9,6 +10,7 @@ type Msg = { role: "user" | "assistant"; text: string };
 const USER_ID = "demo-user";
 
 export default function ChatWidget() {
+  const { t } = useLang();
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -28,7 +30,7 @@ export default function ChatWidget() {
       const reply = await sendChatMessage(USER_ID, text);
       setMsgs((m) => [...m, { role: "assistant", text: reply }]);
     } catch (e) {
-      setMsgs((m) => [...m, { role: "assistant", text: "Something went wrong — check the backend logs." }]);
+      setMsgs((m) => [...m, { role: "assistant", text: t("chat.error") }]);
     } finally {
       setLoading(false);
     }
@@ -37,13 +39,13 @@ export default function ChatWidget() {
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
       <div style={{ padding: "12px 16px", borderBottom: "1px solid #e5e7eb", fontWeight: 600, color: "#111827" }}>
-        💬 Fleet Assistant
+        💬 {t("chat.title")}
       </div>
 
       <div ref={scrollRef} style={{ flex: 1, overflowY: "auto", padding: 14, background: "#fafafa" }}>
         {msgs.length === 0 && !loading && (
-          <div style={{ color: "#9ca3af", fontSize: 13, textAlign: "center", marginTop: 24 }}>
-            Ask about the fleet — e.g.<br />“Which trucks have fault codes?”
+          <div style={{ color: "#9ca3af", fontSize: 13, textAlign: "center", marginTop: 24, whiteSpace: "pre-line" }}>
+            {t("chat.empty")}
           </div>
         )}
         {msgs.map((m, i) => (
@@ -67,7 +69,7 @@ export default function ChatWidget() {
             </span>
           </div>
         ))}
-        {loading && <div style={{ color: "#9ca3af", fontSize: 13, fontStyle: "italic" }}>Assistant is thinking…</div>}
+        {loading && <div style={{ color: "#9ca3af", fontSize: 13, fontStyle: "italic" }}>{t("chat.thinking")}</div>}
       </div>
 
       <div style={{ display: "flex", gap: 8, padding: 12, borderTop: "1px solid #e5e7eb" }}>
@@ -75,7 +77,7 @@ export default function ChatWidget() {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && send()}
-          placeholder="Ask about the fleet…"
+          placeholder={t("chat.placeholder")}
           style={{
             flex: 1,
             padding: "9px 12px",
@@ -98,7 +100,7 @@ export default function ChatWidget() {
             cursor: loading ? "default" : "pointer",
           }}
         >
-          Send
+          {t("chat.send")}
         </button>
       </div>
     </div>

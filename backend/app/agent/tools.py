@@ -7,7 +7,7 @@ defines what the agent is allowed to do.
 """
 from sqlalchemy.orm import Session
 
-from app.models import Vehicle, VehicleEvent, TruckReport
+from app.models import Vehicle, VehicleEvent
 
 TOOL_DEFINITIONS = [
     {
@@ -27,21 +27,20 @@ TOOL_DEFINITIONS = [
         },
     },
     {
-        "name": "save_truck_report",
+        "name": "generate_truck_report",
         "description": (
-            "Save a report you have written about a specific vehicle so the user can view it "
-            "later in the Reports tab. Call this when the user asks you to generate/create/save a "
-            "report for a truck. First call get_vehicle_details to gather the data, then write the "
-            "report and pass it here as `content` (markdown is fine)."
+            "Generate and save a full status report for a vehicle, so the user can view it in the "
+            "Reports tab. Call this when the user asks you to generate/create/make/save a report for "
+            "a truck. The report is written and saved automatically in both English and Russian — you "
+            "do NOT write the report text yourself. After it's saved, confirm briefly and tell the "
+            "user it's available in the Reports tab."
         ),
         "input_schema": {
             "type": "object",
             "properties": {
                 "vehicle_name_or_id": {"type": "string", "description": "Vehicle name or Samsara vehicle id the report is about"},
-                "title": {"type": "string", "description": "Short title, e.g. 'Status report — Truck 131'"},
-                "content": {"type": "string", "description": "The full report text you composed (markdown allowed)"},
             },
-            "required": ["vehicle_name_or_id", "title", "content"],
+            "required": ["vehicle_name_or_id"],
         },
     },
 ]
@@ -100,19 +99,14 @@ def get_vehicle_details(db: Session, vehicle_name_or_id: str) -> dict:
     return _vehicle_snapshot(db, vehicle)
 
 
-def save_truck_report(db: Session, vehicle_name_or_id: str, title: str, content: str) -> dict:
+def generate_truck_report(db: Session, vehicle_name_or_id: str) -> dict:
     vehicle = _find_vehicle(db, vehicle_name_or_id)
     if not vehicle:
         return {"error": f"No vehicle found matching '{vehicle_name_or_id}'"}
-    report = TruckReport(
-        vehicle_id=vehicle.id,
-        vehicle_name=vehicle.name,
-        title=title,
-        content=content,
-        snapshot=_vehicle_snapshot(db, vehicle),
-    )
-    db.add(report)
-    db.flush()  # get the id; the chat router commits at the end of the turn
+    # Local import avoids a circular import (reports.py imports from this module).
+    from app.agent.reports import generate_report
+
+    report = generate_report(db, vehicle)
     return {"saved": True, "report_id": report.id, "vehicle": vehicle.name}
 
 
@@ -121,11 +115,6 @@ def execute_tool(db: Session, name: str, tool_input: dict) -> dict:
         return get_fleet_summary(db)
     if name == "get_vehicle_details":
         return get_vehicle_details(db, tool_input["vehicle_name_or_id"])
-    if name == "save_truck_report":
-        return save_truck_report(
-            db,
-            tool_input["vehicle_name_or_id"],
-            tool_input["title"],
-            tool_input["content"],
-        )
+    if name == "generate_truck_report":
+        return generate_truck_report(db, tool_input["vehicle_name_or_id"])
     return {"error": f"Unknown tool: {name}"}

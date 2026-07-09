@@ -57,7 +57,10 @@ class TruckReport(Base):
     vehicle_id = Column(String, ForeignKey("vehicles.id"), nullable=False, index=True)
     vehicle_name = Column(String, nullable=True)  # denormalized for easy listing
     title = Column(String, nullable=False)
-    content = Column(Text, nullable=False)
+    # Same report in both languages (generated together, kept in sync); the UI
+    # shows one based on the interface language.
+    content_en = Column(Text, nullable=False)
+    content_ru = Column(Text, nullable=False)
     snapshot = Column(JSON, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 

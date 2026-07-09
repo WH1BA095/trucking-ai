@@ -17,9 +17,26 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from app.config import settings
 from app.database import SessionLocal
 from app.models import Vehicle, VehicleEvent
+from app.notifications import notify_admin_critical
 from app.samsara_client import samsara_client
 
 logger = logging.getLogger("sync_job")
+
+
+def _dtc_severity(dtc: dict) -> str:
+    """Per-code severity from the J1939 FMI description + MIL status.
+
+    Samsara's fmiDescription carries the severity words ("High—most severe",
+    "moderate", "least"); MIL on means the code is actively lighting a lamp.
+    """
+    desc = (dtc.get("fmiDescription") or "").lower()
+    if "most severe" in desc:
+        return "high"
+    if "moderate" in desc:
+        return "medium"
+    if "least" in desc or "low" in desc:
+        return "low"
+    return "medium" if dtc.get("milStatus") else "low"
 
 
 def _extract_fault_codes(fault_block: dict | None) -> list[dict]:
@@ -37,19 +54,39 @@ def _extract_fault_codes(fault_block: dict | None) -> list[dict]:
             "fault": dtc.get("fmiDescription"),
             "source": dtc.get("sourceAddressName"),
             "count": dtc.get("occurrenceCount"),
+            "severity": _dtc_severity(dtc),
+            "mil": bool(dtc.get("milStatus")),
         })
     return codes
 
 
-def _has_active_warning(fault_block: dict | None) -> bool:
-    """True if a dashboard check-engine light is currently lit (the urgent case).
+def _active_lamps(fault_block: dict | None) -> list[str]:
+    lights = ((fault_block or {}).get("j1939") or {}).get("checkEngineLights") or {}
+    return [k.replace("IsOn", "") for k, v in lights.items() if v]
 
-    Distinct from merely having stored DTCs: most trucks carry historical codes,
-    so we reserve the "fault" status for an actually-lit warning lamp and still
-    surface the full code list separately for the detail view.
+
+def _has_active_warning(fault_block: dict | None) -> bool:
+    """True if any dashboard check-engine light is currently lit."""
+    return bool(_active_lamps(fault_block))
+
+
+def _alert_level(fault_block: dict | None, fault_codes: list[dict]) -> str:
+    """Fleet-wide severity bucket, following the J1939 lamp hierarchy.
+
+    critical  = red STOP lamp — do not drive, stop now.
+    warning   = amber warning/protect lamp — drivable, service soon.
+    emissions = emissions lamp (DEF/DPF) — drivable, schedule service.
+    info      = stored codes but no lamp lit.
+    ok        = nothing.
     """
     lights = ((fault_block or {}).get("j1939") or {}).get("checkEngineLights") or {}
-    return any(bool(v) for v in lights.values())
+    if lights.get("stopIsOn"):
+        return "critical"
+    if lights.get("warningIsOn") or lights.get("protectIsOn"):
+        return "warning"
+    if lights.get("emissionsIsOn"):
+        return "emissions"
+    return "info" if fault_codes else "ok"
 
 
 def _derive_status(engine_state: str | None, speed_mph: float | None, active_warning: bool) -> str:
@@ -142,6 +179,7 @@ def sync_vehicles_once():
             fault_block = s.get("faultCodes")
             fault_codes = _extract_fault_codes(fault_block)
             new_status = _derive_status(engine_state, speed_mph, _has_active_warning(fault_block))
+            alert_level = _alert_level(fault_block, fault_codes)
 
             video_url = (
                 samsara_client.get_latest_dashcam_media(vehicle_id)
@@ -153,6 +191,8 @@ def sync_vehicles_once():
                 existing = Vehicle(id=vehicle_id)
                 db.add(existing)
 
+            prev_level = (existing.details or {}).get("alert_level")
+
             # Log an event when the status actually changes — this is what
             # summaries/reports read from, not just the current snapshot.
             if existing.status and existing.status != new_status:
@@ -161,6 +201,11 @@ def sync_vehicles_once():
                     event_type="status_change",
                     description=f"{existing.status} -> {new_status}",
                 ))
+
+            details = _build_details(v, s)
+            details["alert_level"] = alert_level
+            details["drivable"] = alert_level != "critical"
+            details["lamps"] = _active_lamps(fault_block)
 
             existing.name = v.get("name", vehicle_id)
             existing.driver_name = drivers.get(v["id"])
@@ -171,10 +216,19 @@ def sync_vehicles_once():
             existing.status = new_status
             existing.engine_state = engine_state
             existing.fault_codes = fault_codes
-            existing.details = _build_details(v, s)
+            existing.details = details
             existing.last_video_url = video_url
             existing.raw_samsara_payload = {"vehicle": v, "stats": s}
             existing.updated_at = datetime.utcnow()
+
+            # Fire the admin alert hook when a truck newly becomes non-drivable.
+            if alert_level == "critical" and prev_level != "critical":
+                db.add(VehicleEvent(
+                    vehicle_id=vehicle_id,
+                    event_type="critical_fault",
+                    description=f"Critical fault at {details.get('location') or 'unknown location'}",
+                ))
+                notify_admin_critical(existing, details)
 
         db.commit()
         logger.info("Synced %d vehicles from Samsara", len(vehicles))

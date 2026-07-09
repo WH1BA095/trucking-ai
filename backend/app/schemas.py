@@ -27,12 +27,27 @@ class ReportOut(BaseModel):
     vehicle_id: str
     vehicle_name: Optional[str] = None
     title: str
-    content: str
+    content_en: str
+    content_ru: str
     snapshot: Optional[Any] = None
     created_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
+
+
+class AlertOut(BaseModel):
+    vehicle_id: str
+    name: str
+    driver_name: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    location: Optional[str] = None
+    alert_level: str
+    drivable: bool
+    lamps: list[str] = []
+    fault_codes: Optional[Any] = None
+    message: str
 
 
 class GenerateReportRequest(BaseModel):

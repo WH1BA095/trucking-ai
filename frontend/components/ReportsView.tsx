@@ -4,10 +4,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { fetchReports, generateAllReports, Report, Vehicle } from "../lib/api";
+import { useLang } from "../lib/i18n";
 import TruckDetail from "./TruckDetail";
 
-// Change vs the previous report for the same truck, from the saved snapshots.
-function deltaLine(cur: Report, prev?: Report): string | null {
+function deltaLine(cur: Report, prev: Report | undefined, noChange: string): string | null {
   if (!prev) return null;
   const c = cur.snapshot?.details ?? {};
   const p = prev.snapshot?.details ?? {};
@@ -26,10 +26,11 @@ function deltaLine(cur: Report, prev?: Report): string | null {
   const flt = cf - pf;
   if (flt) parts.push(`faults ${sign(flt)}${flt}`);
 
-  return parts.length ? parts.join(" · ") : "no change";
+  return parts.length ? parts.join(" · ") : noChange;
 }
 
 export default function ReportsView({ vehicles }: { vehicles: Vehicle[] }) {
+  const { t, lang } = useLang();
   const [reports, setReports] = useState<Report[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -49,7 +50,7 @@ export default function ReportsView({ vehicles }: { vehicles: Vehicle[] }) {
 
   async function generateAll() {
     if (generating) return;
-    if (!confirm(`Generate a report for all ${vehicles.length} trucks? This runs the AI model for each and may take a minute.`)) return;
+    if (!confirm(`${t("reports.generateAll").replace("🔄 ", "")} — ${vehicles.length}?`)) return;
     try {
       const { count } = await generateAllReports();
       setGenerating(true);
@@ -66,7 +67,6 @@ export default function ReportsView({ vehicles }: { vehicles: Vehicle[] }) {
       }, 8000);
     } catch (e) {
       console.error(e);
-      alert("Couldn't start bulk generation — check the backend logs.");
     }
   }
 
@@ -99,78 +99,45 @@ export default function ReportsView({ vehicles }: { vehicles: Vehicle[] }) {
         .report-md code { background: #f3f4f6; padding: 1px 4px; border-radius: 4px; font-size: 13px; }
       `}</style>
 
-      {/* Toolbar */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: "10px 16px",
-          borderBottom: "1px solid #e5e7eb",
-          background: "#fff",
-        }}
-      >
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 16px", borderBottom: "1px solid #e5e7eb", background: "#fff" }}>
         <div style={{ fontSize: 13, color: "#6b7280" }}>
-          {reports.length} report{reports.length === 1 ? "" : "s"} · {groups.length} truck{groups.length === 1 ? "" : "s"}
+          {reports.length} {t("reports.reportsWord")} · {groups.length} {t("reports.trucksWord")}
         </div>
         <button
           onClick={generateAll}
           disabled={generating}
-          style={{
-            padding: "8px 14px",
-            background: generating ? "#9ca3af" : "#1F4E79",
-            color: "#fff",
-            border: "none",
-            borderRadius: 8,
-            fontWeight: 600,
-            fontSize: 13,
-            cursor: generating ? "default" : "pointer",
-          }}
+          style={{ padding: "8px 14px", background: generating ? "#9ca3af" : "#1F4E79", color: "#fff", border: "none", borderRadius: 8, fontWeight: 600, fontSize: 13, cursor: generating ? "default" : "pointer" }}
         >
-          {generating ? "Generating… (may take a minute)" : "🔄 Generate reports for all trucks"}
+          {generating ? t("reports.generatingAll") : t("reports.generateAll")}
         </button>
       </div>
 
       {loading ? (
-        <div style={{ padding: 24, color: "#9ca3af" }}>Loading reports…</div>
+        <div style={{ padding: 24, color: "#9ca3af" }}>{t("reports.loading")}</div>
       ) : groups.length === 0 ? (
         <div style={{ padding: 40, textAlign: "center", color: "#9ca3af", maxWidth: 460, margin: "40px auto" }}>
           <div style={{ fontSize: 40 }}>📋</div>
-          <div style={{ fontSize: 16, fontWeight: 600, color: "#374151", marginTop: 8 }}>No reports yet</div>
-          <div style={{ fontSize: 14, marginTop: 6 }}>
-            Use “Generate reports for all trucks” above, click “Generate report” on a truck, or ask the assistant — e.g. “Make a report for truck 131”.
-          </div>
+          <div style={{ fontSize: 16, fontWeight: 600, color: "#374151", marginTop: 8 }}>{t("reports.noReportsTitle")}</div>
+          <div style={{ fontSize: 14, marginTop: 6 }}>{t("reports.noReportsHint")}</div>
         </div>
       ) : (
         <div style={{ display: "flex", flex: 1, minHeight: 0 }}>
-          {/* Truck list */}
           <div style={{ width: 260, borderRight: "1px solid #e5e7eb", overflowY: "auto", background: "#fff", flexShrink: 0 }}>
             <div style={{ padding: "12px 16px", fontSize: 12, textTransform: "uppercase", letterSpacing: 0.5, color: "#9ca3af" }}>
-              Trucks with reports
+              {t("reports.trucksWithReports")}
             </div>
             {groups.map((g) => (
               <div
                 key={g.id}
                 onClick={() => setSelectedId(g.id)}
-                style={{
-                  padding: "12px 16px",
-                  cursor: "pointer",
-                  borderLeft: g.id === activeId ? "3px solid #1F4E79" : "3px solid transparent",
-                  background: g.id === activeId ? "#f3f6fb" : "transparent",
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                }}
+                style={{ padding: "12px 16px", cursor: "pointer", borderLeft: g.id === activeId ? "3px solid #1F4E79" : "3px solid transparent", background: g.id === activeId ? "#f3f6fb" : "transparent", display: "flex", justifyContent: "space-between", alignItems: "center" }}
               >
-                <span style={{ fontWeight: 600, color: "#111827" }}>Truck {g.name}</span>
-                <span style={{ fontSize: 12, color: "#6b7280", background: "#eef2ff", borderRadius: 999, padding: "1px 8px" }}>
-                  {g.reports.length}
-                </span>
+                <span style={{ fontWeight: 600, color: "#111827" }}>{t("detail.truck")} {g.name}</span>
+                <span style={{ fontSize: 12, color: "#6b7280", background: "#eef2ff", borderRadius: 999, padding: "1px 8px" }}>{g.reports.length}</span>
               </div>
             ))}
           </div>
 
-          {/* Current info + report history */}
           <div style={{ flex: 1, overflowY: "auto", minWidth: 0 }}>
             {activeVehicle && (
               <div style={{ borderBottom: "8px solid #f3f4f6" }}>
@@ -179,10 +146,11 @@ export default function ReportsView({ vehicles }: { vehicles: Vehicle[] }) {
             )}
             <div style={{ padding: 20 }}>
               <div style={{ fontSize: 15, fontWeight: 700, color: "#111827", marginBottom: 12 }}>
-                Reports ({activeReports.length})
+                {t("reports.reports")} ({activeReports.length})
               </div>
               {activeReports.map((r, i) => {
-                const delta = deltaLine(r, activeReports[i + 1]);
+                const delta = deltaLine(r, activeReports[i + 1], t("reports.noChange"));
+                const body = lang === "ru" ? r.content_ru : r.content_en;
                 return (
                   <div key={r.id} style={{ border: "1px solid #e5e7eb", borderRadius: 10, padding: 16, marginBottom: 14, background: "#fff" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8 }}>
@@ -193,11 +161,11 @@ export default function ReportsView({ vehicles }: { vehicles: Vehicle[] }) {
                     </div>
                     {delta && (
                       <div style={{ marginTop: 8, fontSize: 12, color: "#374151", background: "#f3f6fb", borderRadius: 6, padding: "4px 10px", display: "inline-block" }}>
-                        Since previous: {delta}
+                        {t("reports.sincePrevious")}: {delta}
                       </div>
                     )}
                     <div className="report-md" style={{ fontSize: 14, color: "#374151", lineHeight: 1.5, marginTop: 10 }}>
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>{r.content}</ReactMarkdown>
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>{body}</ReactMarkdown>
                     </div>
                   </div>
                 );

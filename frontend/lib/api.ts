@@ -7,9 +7,12 @@ export type FaultCode = {
   fault?: string;
   source?: string;
   count?: number;
+  severity?: "high" | "medium" | "low";
+  mil?: boolean;
 };
 
 export type VehicleDetails = {
+  location?: string | null;
   vin?: string | null;
   make?: string | null;
   model?: string | null;
@@ -24,6 +27,9 @@ export type VehicleDetails = {
   ambient_temp_f?: number | null;
   engine_rpm?: number | null;
   engine_load_percent?: number | null;
+  alert_level?: string | null;
+  drivable?: boolean | null;
+  lamps?: string[];
 };
 
 export type Vehicle = {
@@ -42,12 +48,33 @@ export type Vehicle = {
   updated_at: string | null;
 };
 
+export type Alert = {
+  vehicle_id: string;
+  name: string;
+  driver_name: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  location: string | null;
+  alert_level: "critical" | "warning" | "emissions";
+  drivable: boolean;
+  lamps: string[];
+  fault_codes: FaultCode[] | null;
+  message: string;
+};
+
+export const ALERT_META: Record<string, { color: string; bg: string }> = {
+  critical: { color: "#dc2626", bg: "#fef2f2" },
+  warning: { color: "#d97706", bg: "#fffbeb" },
+  emissions: { color: "#2563eb", bg: "#eff6ff" },
+};
+
 export type Report = {
   id: string;
   vehicle_id: string;
   vehicle_name: string | null;
   title: string;
-  content: string;
+  content_en: string;
+  content_ru: string;
   snapshot: any;
   created_at: string | null;
 };
@@ -74,6 +101,12 @@ export async function fetchRoute(vehicleId: string, hours = 8): Promise<[number,
   if (!res.ok) throw new Error("Failed to load route");
   const data = await res.json();
   return data.points ?? [];
+}
+
+export async function fetchAlerts(): Promise<Alert[]> {
+  const res = await fetch(`${API_URL}/alerts`, { cache: "no-store" });
+  if (!res.ok) throw new Error("Failed to load alerts");
+  return res.json();
 }
 
 export async function fetchReports(): Promise<Report[]> {
