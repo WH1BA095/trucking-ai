@@ -40,6 +40,11 @@ class Settings(BaseSettings):
     # Admin alerts (SMS not wired yet — see app/notifications.py)
     admin_phone: str = ""
 
+    # Read-only DB viewer (/admin/*). Exposes ALL tables — keep on only while
+    # there's no auth and you're local; set false before hosting until the admin
+    # area is gated behind a login.
+    admin_enabled: bool = True
+
     @property
     def allowed_origins_list(self) -> list[str]:
         return [o.strip() for o in self.allowed_origins.split(",") if o.strip()]

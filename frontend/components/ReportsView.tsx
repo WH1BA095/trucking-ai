@@ -5,6 +5,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { fetchReports, generateAllReports, Report, Vehicle } from "../lib/api";
 import { useLang } from "../lib/i18n";
+import { useSettings } from "../lib/settings";
 import TruckDetail from "./TruckDetail";
 
 function deltaLine(cur: Report, prev: Report | undefined, noChange: string): string | null {
@@ -31,6 +32,7 @@ function deltaLine(cur: Report, prev: Report | undefined, noChange: string): str
 
 export default function ReportsView({ vehicles }: { vehicles: Vehicle[] }) {
   const { t, lang } = useLang();
+  const { formatDateTime } = useSettings();
   const [reports, setReports] = useState<Report[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -156,7 +158,7 @@ export default function ReportsView({ vehicles }: { vehicles: Vehicle[] }) {
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8 }}>
                       <span style={{ fontWeight: 600, color: "var(--text)", fontSize: 15 }}>{r.title}</span>
                       <span style={{ fontSize: 12, color: "var(--muted)", whiteSpace: "nowrap" }}>
-                        {r.created_at ? new Date(r.created_at).toLocaleString() : ""}
+                        {formatDateTime(r.created_at)}
                       </span>
                     </div>
                     {delta && (

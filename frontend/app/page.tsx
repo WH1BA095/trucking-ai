@@ -5,15 +5,17 @@ import dynamic from "next/dynamic";
 import { fetchVehicles, fetchRoute, Vehicle, STATUS_META } from "../lib/api";
 import { useLang } from "../lib/i18n";
 import { useTheme } from "../lib/theme";
+import { useSettings, TIMEZONES } from "../lib/settings";
 import TruckDetail from "../components/TruckDetail";
 import ChatWidget from "../components/ChatWidget";
 import ReportsView from "../components/ReportsView";
 import AlertsView from "../components/AlertsView";
+import AdminView from "../components/AdminView";
 
 // Leaflet touches `window`, so it must be loaded client-side only.
 const TruckMap = dynamic(() => import("../components/TruckMap"), { ssr: false });
 
-type Tab = "map" | "reports" | "alerts";
+type Tab = "map" | "reports" | "alerts" | "admin";
 
 function Metric({ label, value, color, active, onClick }: { label: string; value: number; color: string; active: boolean; onClick: () => void }) {
   return (
@@ -28,6 +30,25 @@ function Metric({ label, value, color, active, onClick }: { label: string; value
       <span style={{ fontWeight: 700, fontSize: 15, color: active ? "#fff" : "var(--text)" }}>{value}</span>
       <span style={{ color: active ? "rgba(255,255,255,.85)" : "var(--muted)", fontSize: 13 }}>{label}</span>
     </button>
+  );
+}
+
+function Clock() {
+  const { formatClock } = useSettings();
+  const [now, setNow] = useState<Date | null>(null);
+  useEffect(() => {
+    setNow(new Date());
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  if (!now) return null;
+  const { date, time, zone } = formatClock(now);
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 8, background: "rgba(255,255,255,.12)", padding: "4px 12px", borderRadius: 8, color: "#fff", fontSize: 13 }}>
+      <span>{date}</span>
+      <span style={{ fontFamily: "ui-monospace, monospace", fontWeight: 700, letterSpacing: 0.5 }}>{time}</span>
+      <span style={{ opacity: 0.7 }}>{zone}</span>
+    </div>
   );
 }
 
@@ -48,6 +69,7 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
 export default function Home() {
   const { t, lang, setLang } = useLang();
   const { theme, toggle } = useTheme();
+  const { timeZone, setTimeZone, hour12, setHour12 } = useSettings();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [selected, setSelected] = useState<Vehicle | null>(null);
   const [route, setRoute] = useState<[number, number][]>([]);
@@ -98,7 +120,9 @@ export default function Home() {
             <TabButton active={tab === "map"} onClick={() => setTab("map")}>{t("tab.map")}</TabButton>
             <TabButton active={tab === "reports"} onClick={() => setTab("reports")}>{t("tab.reports")}</TabButton>
             <TabButton active={tab === "alerts"} onClick={() => setTab("alerts")}>{t("tab.alerts")}</TabButton>
+            <TabButton active={tab === "admin"} onClick={() => setTab("admin")}>{t("tab.admin")}</TabButton>
           </div>
+          <Clock />
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           {filter && (
@@ -115,6 +139,23 @@ export default function Home() {
             <Metric label={t("metric.idle")} value={count("idle")} color={STATUS_META.idle.color} active={filter === "idle"} onClick={() => setFilter("idle")} />
             <Metric label={t("metric.fault")} value={count("fault")} color={STATUS_META.fault.color} active={filter === "fault"} onClick={() => setFilter("fault")} />
           </div>
+          <select
+            value={timeZone}
+            onChange={(e) => setTimeZone(e.target.value)}
+            title="Time zone"
+            style={{ background: "rgba(255,255,255,.15)", color: "#fff", border: "1px solid rgba(255,255,255,.4)", borderRadius: 8, padding: "6px 8px", fontSize: 13, cursor: "pointer" }}
+          >
+            {TIMEZONES.map((tz) => (
+              <option key={tz.id} value={tz.id} style={{ color: "#111827" }}>{tz.label}</option>
+            ))}
+          </select>
+          <button
+            onClick={() => setHour12(!hour12)}
+            title="12 / 24 hour"
+            style={{ background: "rgba(255,255,255,.15)", color: "#fff", border: "1px solid rgba(255,255,255,.4)", borderRadius: 8, padding: "6px 10px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}
+          >
+            {hour12 ? "12h" : "24h"}
+          </button>
           <button
             onClick={() => setLang(lang === "en" ? "ru" : "en")}
             style={{ background: "rgba(255,255,255,.15)", color: "#fff", border: "1px solid rgba(255,255,255,.4)", borderRadius: 8, padding: "6px 12px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}
@@ -146,15 +187,21 @@ export default function Home() {
             <div style={{ flex: 1, minWidth: 0, background: "var(--bg)" }}>
               <ReportsView vehicles={vehicles} />
             </div>
-          ) : (
+          ) : tab === "alerts" ? (
             <div style={{ flex: 1, minWidth: 0, background: "var(--bg)" }}>
               <AlertsView onSelectTruck={(id) => { const v = vehicles.find((x) => x.id === id); if (v) { setSelected(v); setTab("map"); } }} />
             </div>
+          ) : (
+            <div style={{ flex: 1, minWidth: 0, background: "var(--bg)" }}>
+              <AdminView />
+            </div>
           )}
         </div>
-        <div style={{ width: tab === "alerts" ? 520 : 360, background: "var(--panel)", borderLeft: "1px solid var(--border)", flexShrink: 0, transition: "width .2s" }}>
-          <ChatWidget />
-        </div>
+        {tab !== "admin" && (
+          <div style={{ width: tab === "alerts" ? 520 : 360, background: "var(--panel)", borderLeft: "1px solid var(--border)", flexShrink: 0, transition: "width .2s" }}>
+            <ChatWidget />
+          </div>
+        )}
       </div>
     </div>
   );

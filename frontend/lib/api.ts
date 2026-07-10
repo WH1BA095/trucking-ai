@@ -132,6 +132,28 @@ export async function generateReport(vehicleId: string): Promise<Report> {
   return res.json();
 }
 
+export type TableInfo = { name: string; rows: number };
+export type TableData = {
+  table: string;
+  columns: string[];
+  total: number;
+  limit: number;
+  offset: number;
+  rows: Record<string, any>[];
+};
+
+export async function fetchTables(): Promise<TableInfo[]> {
+  const res = await fetch(`${API_URL}/admin/tables`, { cache: "no-store" });
+  if (!res.ok) throw new Error("Failed to load tables");
+  return res.json();
+}
+
+export async function fetchTableRows(table: string, limit = 100, offset = 0): Promise<TableData> {
+  const res = await fetch(`${API_URL}/admin/tables/${table}?limit=${limit}&offset=${offset}`, { cache: "no-store" });
+  if (!res.ok) throw new Error("Failed to load table");
+  return res.json();
+}
+
 export async function sendChatMessage(userId: string, message: string): Promise<string> {
   const res = await fetch(`${API_URL}/chat`, {
     method: "POST",

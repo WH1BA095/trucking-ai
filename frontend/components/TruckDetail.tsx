@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Vehicle, FaultCode, Report, statusMeta, generateReport } from "../lib/api";
 import { useLang } from "../lib/i18n";
+import { useSettings } from "../lib/settings";
 
 function Field({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -50,6 +51,7 @@ const num = (v: number | null | undefined, suffix = "", fallback = "—") =>
 
 export default function TruckDetail({ vehicle, onReportCreated }: { vehicle: Vehicle | null; onReportCreated?: (report: Report) => void }) {
   const { t } = useLang();
+  const { formatDateTime } = useSettings();
   const [reporting, setReporting] = useState(false);
   const [done, setDone] = useState(false);
 
@@ -85,7 +87,7 @@ export default function TruckDetail({ vehicle, onReportCreated }: { vehicle: Veh
   const { color, label } = statusMeta(vehicle.status);
   const faults = Array.isArray(vehicle.fault_codes) ? vehicle.fault_codes : [];
   const d = vehicle.details ?? {};
-  const updated = vehicle.updated_at ? new Date(vehicle.updated_at).toLocaleTimeString() : null;
+  const updated = vehicle.updated_at ? formatDateTime(vehicle.updated_at) : null;
 
   return (
     <div style={{ padding: 20, overflowY: "auto", height: "100%", boxSizing: "border-box" }}>

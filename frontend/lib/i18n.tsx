@@ -10,6 +10,14 @@ const DICT: Record<string, { en: string; ru: string }> = {
   "tab.map": { en: "Map", ru: "Карта" },
   "tab.reports": { en: "Reports", ru: "Отчёты" },
   "tab.alerts": { en: "Alerts", ru: "Оповещения" },
+  "tab.admin": { en: "DB", ru: "База" },
+
+  "admin.tables": { en: "Tables", ru: "Таблицы" },
+  "admin.loading": { en: "Loading…", ru: "Загрузка…" },
+  "admin.rows": { en: "rows", ru: "строк" },
+  "admin.of": { en: "of", ru: "из" },
+  "admin.prev": { en: "← Prev", ru: "← Назад" },
+  "admin.next": { en: "Next →", ru: "Вперёд →" },
 
   "metric.total": { en: "Total", ru: "Всего" },
   "metric.moving": { en: "Moving", ru: "В пути" },
