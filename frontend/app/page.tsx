@@ -4,8 +4,7 @@ import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { fetchVehicles, fetchRoute, Vehicle, STATUS_META, hasAlert } from "../lib/api";
 import { useLang } from "../lib/i18n";
-import { useTheme } from "../lib/theme";
-import { useSettings, TIMEZONES } from "../lib/settings";
+import { useSettings } from "../lib/settings";
 import { useAuth } from "../lib/auth";
 import TruckDetail from "../components/TruckDetail";
 import ChatWidget from "../components/ChatWidget";
@@ -63,9 +62,7 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
 const ctrlBtn: React.CSSProperties = { background: "rgba(255,255,255,.15)", color: "#fff", border: "1px solid rgba(255,255,255,.4)", borderRadius: 8, padding: "6px 10px", fontSize: 13, fontWeight: 700, cursor: "pointer" };
 
 export default function Home() {
-  const { t, lang, setLang } = useLang();
-  const { theme, toggle } = useTheme();
-  const { timeZone, setTimeZone, hour12, setHour12 } = useSettings();
+  const { t } = useLang();
   const { user, loading, logout, hasPerm } = useAuth();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [selected, setSelected] = useState<Vehicle | null>(null);
@@ -139,14 +136,7 @@ export default function Home() {
               <Metric label={t("metric.fault")} value={faultCount} color={STATUS_META.fault.color} active={filter === "fault"} onClick={() => setFilter("fault")} />
             </div>
           )}
-          <select value={timeZone} onChange={(e) => setTimeZone(e.target.value)} title="Time zone" style={{ ...ctrlBtn, fontWeight: 400 }}>
-            {TIMEZONES.map((tz) => <option key={tz.id} value={tz.id} style={{ color: "#111827" }}>{tz.label}</option>)}
-          </select>
-          <button onClick={() => setHour12(!hour12)} title="12 / 24 hour" style={ctrlBtn}>{hour12 ? "12h" : "24h"}</button>
-          <button onClick={() => setLang(lang === "en" ? "ru" : "en")} style={ctrlBtn}>{lang === "en" ? "RU" : "EN"}</button>
-          <button onClick={toggle} title="Toggle theme" style={{ ...ctrlBtn, display: "flex", alignItems: "center" }}><Icon name={theme === "light" ? "moon" : "sun"} size={15} /></button>
-
-          {/* Account */}
+          {/* Account (timezone / 12-24h / language / theme moved to profile settings) */}
           <button onClick={() => setProfileOpen(true)} title={t("profile.title")} style={{ display: "flex", alignItems: "center", gap: 8, background: "rgba(255,255,255,.15)", border: "1px solid rgba(255,255,255,.4)", borderRadius: 999, padding: "3px 10px 3px 3px", color: "#fff", cursor: "pointer" }}>
             <span style={{ width: 26, height: 26, borderRadius: "50%", background: "rgba(255,255,255,.25)", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>
               {user.avatar ? <img src={user.avatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <Icon name="user" size={15} />}

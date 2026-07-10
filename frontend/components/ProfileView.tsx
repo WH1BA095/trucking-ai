@@ -3,12 +3,34 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../lib/auth";
 import { useLang } from "../lib/i18n";
+import { useTheme } from "../lib/theme";
+import { useSettings, TIMEZONES } from "../lib/settings";
 import {
   User, updateMe, fetchUsers, createUser, updateUser, deleteUser, fetchPermissions,
 } from "../lib/api";
 import { Icon } from "./icons";
 
 const ROLES = ["admin", "moderator"];
+
+function Seg({ value, options, onChange }: { value: string; options: [string, string][]; onChange: (v: string) => void }) {
+  return (
+    <div style={{ display: "inline-flex", border: "1px solid var(--border)", borderRadius: 8, overflow: "hidden" }}>
+      {options.map(([val, label]) => (
+        <button
+          key={val}
+          onClick={() => onChange(val)}
+          style={{
+            padding: "6px 14px", border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600,
+            background: value === val ? "#1F4E79" : "var(--panel)",
+            color: value === val ? "#fff" : "var(--text)",
+          }}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -46,7 +68,10 @@ function PermChecks({ perms, value, onChange, t }: { perms: string[]; value: str
 
 export default function ProfileView({ onClose }: { onClose: () => void }) {
   const { user, setUser, hasPerm } = useAuth();
-  const { t } = useLang();
+  const { t, lang, setLang } = useLang();
+  const { theme, toggle } = useTheme();
+  const { timeZone, setTimeZone, hour12, setHour12 } = useSettings();
+  const setTheme = (v: string) => { if (v !== theme) toggle(); };
 
   // --- my profile ---
   const [username, setUsername] = useState(user?.username ?? "");
@@ -143,6 +168,29 @@ export default function ProfileView({ onClose }: { onClose: () => void }) {
                 <button onClick={saveProfile} style={btn("#1F4E79")}>{t("profile.save")}</button>
                 {savedProfile && <span style={{ color: "#16a34a", fontSize: 13 }}>✓ {t("profile.saved")}</span>}
               </div>
+            </div>
+          </div>
+        </Card>
+
+        <Card title={t("settings.title")}>
+          <div style={{ display: "grid", gap: 16 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+              <span style={{ fontSize: 14, color: "var(--text)" }}>{t("settings.language")}</span>
+              <Seg value={lang} options={[["en", "EN"], ["ru", "RU"]]} onChange={(v) => setLang(v as any)} />
+            </div>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+              <span style={{ fontSize: 14, color: "var(--text)" }}>{t("settings.hourFormat")}</span>
+              <Seg value={hour12 ? "12" : "24"} options={[["24", "24h"], ["12", "12h"]]} onChange={(v) => setHour12(v === "12")} />
+            </div>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+              <span style={{ fontSize: 14, color: "var(--text)" }}>{t("settings.theme")}</span>
+              <Seg value={theme} options={[["light", t("theme.light")], ["dark", t("theme.dark")]]} onChange={setTheme} />
+            </div>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+              <span style={{ fontSize: 14, color: "var(--text)" }}>{t("settings.timezone")}</span>
+              <select value={timeZone} onChange={(e) => setTimeZone(e.target.value)} style={{ ...inputStyle, padding: "6px 10px" }}>
+                {TIMEZONES.map((tz) => <option key={tz.id} value={tz.id}>{tz.label}</option>)}
+              </select>
             </div>
           </div>
         </Card>

@@ -35,6 +35,14 @@ const DICT: Record<string, { en: string; ru: string }> = {
   "profile.saved": { en: "Saved", ru: "Сохранено" },
   "profile.back": { en: "← Back to dashboard", ru: "← Назад в дашборд" },
 
+  "settings.title": { en: "Settings", ru: "Настройки" },
+  "settings.language": { en: "Language", ru: "Язык" },
+  "settings.hourFormat": { en: "Hour format", ru: "Формат времени" },
+  "settings.theme": { en: "Theme", ru: "Тема" },
+  "settings.timezone": { en: "Time zone", ru: "Часовой пояс" },
+  "theme.light": { en: "Light", ru: "Светлая" },
+  "theme.dark": { en: "Dark", ru: "Тёмная" },
+
   "users.title": { en: "Users", ru: "Пользователи" },
   "users.create": { en: "Register user", ru: "Зарегистрировать юзера" },
   "users.role": { en: "Role", ru: "Роль" },
