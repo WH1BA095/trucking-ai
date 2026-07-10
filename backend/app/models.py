@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlalchemy import Column, String, Float, DateTime, ForeignKey, Text, JSON
 from sqlalchemy.dialects.postgresql import UUID
@@ -9,6 +9,10 @@ from app.database import Base
 
 def gen_uuid():
     return str(uuid.uuid4())
+
+
+def utcnow():
+    return datetime.now(timezone.utc)
 
 
 class Vehicle(Base):
@@ -32,7 +36,7 @@ class Vehicle(Base):
     details = Column(JSON, nullable=True)
     last_video_url = Column(String, nullable=True)  # dash cam clip / snapshot link, if available
     raw_samsara_payload = Column(JSON, nullable=True)  # keep the raw response — cheap insurance for debugging
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
 
 
 class VehicleEvent(Base):
@@ -44,7 +48,7 @@ class VehicleEvent(Base):
     event_type = Column(String, nullable=False)  # "fault_code", "status_change", "incident", ...
     description = Column(Text, nullable=True)
     payload = Column(JSON, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utcnow)
 
 
 class User(Base):
@@ -58,7 +62,7 @@ class User(Base):
     role = Column(String, nullable=False, default="moderator")  # "admin" | "moderator"
     permissions = Column(JSON, nullable=True)  # list of permission keys
     avatar = Column(Text, nullable=True)  # base64 data URL
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utcnow)
 
 
 class TruckReport(Base):
@@ -77,7 +81,7 @@ class TruckReport(Base):
     content_en = Column(Text, nullable=False)
     content_ru = Column(Text, nullable=False)
     snapshot = Column(JSON, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utcnow)
 
 
 class ChatMessage(Base):
@@ -88,4 +92,4 @@ class ChatMessage(Base):
     user_id = Column(String, nullable=False, index=True)
     role = Column(String, nullable=False)  # "user" | "assistant"
     content = Column(Text, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utcnow)

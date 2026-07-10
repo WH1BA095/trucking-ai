@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Optional, Any
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 # ~1.5 MB base64 avatar cap (keeps the DB/row size sane).
 AVATAR_MAX = 2_000_000
@@ -21,8 +21,7 @@ class VehicleOut(BaseModel):
     last_video_url: Optional[str] = None
     updated_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ReportOut(BaseModel):
@@ -35,8 +34,7 @@ class ReportOut(BaseModel):
     snapshot: Optional[Any] = None
     created_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class AlertOut(BaseModel):
@@ -65,8 +63,7 @@ class UserOut(BaseModel):
     permissions: Optional[list[str]] = None
     avatar: Optional[str] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class LoginRequest(BaseModel):

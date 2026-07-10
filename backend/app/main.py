@@ -1,4 +1,5 @@
 import logging
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,7 +11,18 @@ from app.auth import seed_admin, security_startup_warnings
 
 logging.basicConfig(level=logging.INFO)
 
-app = FastAPI(title="Fleet AI Dashboard API")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Schema is managed by Alembic — run `alembic upgrade head` to create/upgrade
+    # tables (on a fresh DB, do this before first start).
+    seed_admin()
+    security_startup_warnings()
+    start_scheduler()
+    yield
+
+
+app = FastAPI(title="Fleet AI Dashboard API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -25,15 +37,6 @@ app.include_router(chat.router)
 app.include_router(reports.router)
 app.include_router(alerts.router)
 app.include_router(admin.router)
-
-
-@app.on_event("startup")
-def on_startup():
-    # Schema is managed by Alembic now — run `alembic upgrade head` to create or
-    # upgrade tables (on a fresh DB, do this before first start).
-    seed_admin()
-    security_startup_warnings()
-    start_scheduler()
 
 
 @app.get("/health")

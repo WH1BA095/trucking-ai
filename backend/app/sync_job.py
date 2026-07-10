@@ -10,7 +10,7 @@ Samsara webhooks, you can add a `/webhooks/samsara` route that updates the
 same tables on push instead of poll — no other code needs to change.
 """
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 
 from apscheduler.schedulers.background import BackgroundScheduler
 
@@ -253,7 +253,7 @@ def sync_vehicles_once():
             existing.details = details
             existing.last_video_url = video_url
             existing.raw_samsara_payload = {"vehicle": v, "stats": s}
-            existing.updated_at = datetime.utcnow()
+            existing.updated_at = datetime.now(timezone.utc)
 
             # Fire the admin alert hook when a truck newly becomes non-drivable.
             if alert_level == "critical" and prev_level != "critical":
