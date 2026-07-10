@@ -15,11 +15,18 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
-function Section({ title, children }: { title: React.ReactNode; children: React.ReactNode }) {
+function Section({ title, children, defaultOpen = false }: { title: React.ReactNode; children: React.ReactNode; defaultOpen?: boolean }) {
+  const [open, setOpen] = useState(defaultOpen);
   return (
-    <div style={{ marginTop: 22 }}>
-      <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", marginBottom: 10 }}>{title}</div>
-      {children}
+    <div style={{ marginTop: 16, borderTop: "1px solid var(--border)", paddingTop: 14 }}>
+      <div
+        onClick={() => setOpen((o) => !o)}
+        style={{ display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", userSelect: "none", fontSize: 13, fontWeight: 600, color: "var(--text)" }}
+      >
+        <span style={{ display: "flex", alignItems: "center", gap: 8 }}>{title}</span>
+        <Icon name="chevron" size={16} color="var(--muted)" style={{ transform: open ? "rotate(90deg)" : "none", transition: "transform .15s" }} />
+      </div>
+      {open && <div style={{ marginTop: 12 }}>{children}</div>}
     </div>
   );
 }
@@ -202,6 +209,7 @@ export default function TruckDetail({ vehicle, onReportCreated }: { vehicle: Veh
             )}
           </span>
         }
+        defaultOpen={faults.length > 0}
       >
         {faults.length === 0 ? (
           <div style={{ fontSize: 13, color: "#16a34a" }}>✓ {t("detail.noFaults")}</div>
