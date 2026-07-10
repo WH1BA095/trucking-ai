@@ -3,7 +3,7 @@ import React from "react";
 type Props = { name: IconName; size?: number; color?: string; style?: React.CSSProperties };
 export type IconName =
   | "truck" | "sun" | "moon" | "user" | "logout" | "report"
-  | "pin" | "alert" | "refresh" | "chat" | "check" | "reset" | "chevron";
+  | "pin" | "alert" | "refresh" | "chat" | "check" | "reset" | "chevron" | "close";
 
 const PATHS: Record<IconName, React.ReactNode> = {
   truck: (<>
@@ -47,6 +47,9 @@ const PATHS: Record<IconName, React.ReactNode> = {
     <polyline points="1 4 1 10 7 10" /><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
   </>),
   chevron: <polyline points="9 18 15 12 9 6" />,
+  close: (<>
+    <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+  </>),
 };
 
 export function Icon({ name, size = 16, color, style }: Props) {

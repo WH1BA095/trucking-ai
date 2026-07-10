@@ -66,7 +66,7 @@ const HOS_COLOR: Record<string, string> = {
   sleeperBed: "#2563eb",
 };
 
-export default function TruckDetail({ vehicle, onReportCreated }: { vehicle: Vehicle | null; onReportCreated?: (report: Report) => void }) {
+export default function TruckDetail({ vehicle, onReportCreated, onClose }: { vehicle: Vehicle | null; onReportCreated?: (report: Report) => void; onClose?: () => void }) {
   const { t } = useLang();
   const { formatDateTime } = useSettings();
   const [reporting, setReporting] = useState(false);
@@ -109,9 +109,16 @@ export default function TruckDetail({ vehicle, onReportCreated }: { vehicle: Veh
 
   return (
     <div style={{ padding: 20, overflowY: "auto", height: "100%", boxSizing: "border-box" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <h2 style={{ margin: 0, fontSize: 22, color: "var(--text)" }}>{t("detail.truck")} {vehicle.name}</h2>
-        <span style={{ background: color, color: "#fff", fontSize: 12, fontWeight: 600, padding: "3px 10px", borderRadius: 999 }}>{label}</span>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <h2 style={{ margin: 0, fontSize: 22, color: "var(--text)" }}>{t("detail.truck")} {vehicle.name}</h2>
+          <span style={{ background: color, color: "#fff", fontSize: 12, fontWeight: 600, padding: "3px 10px", borderRadius: 999 }}>{label}</span>
+        </div>
+        {onClose && (
+          <button onClick={onClose} aria-label="close" style={{ background: "transparent", border: "none", cursor: "pointer", color: "var(--muted)", display: "flex", padding: 4 }}>
+            <Icon name="close" size={18} />
+          </button>
+        )}
       </div>
 
       <button

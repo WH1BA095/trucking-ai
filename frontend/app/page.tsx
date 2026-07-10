@@ -111,6 +111,7 @@ export default function Home() {
 
   const count = (s: string) => vehicles.filter((v) => v.status === s).length;
   const shown = filter ? vehicles.filter((v) => v.status === filter) : vehicles;
+  const chatWidth = tab === "alerts" ? 520 : tab === "map" && !selected ? 560 : 360;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100vh", background: "var(--bg)" }}>
@@ -164,8 +165,11 @@ export default function Home() {
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <TruckMap vehicles={shown} selectedId={selected?.id ?? null} route={route} onSelect={setSelected} />
                   </div>
-                  <div style={{ width: 340, background: "var(--panel)", borderLeft: "1px solid var(--border)", flexShrink: 0 }}>
-                    <TruckDetail vehicle={selected} onReportCreated={() => setTab("reports")} />
+                  {/* Detail panel slides in from the right when a truck is selected */}
+                  <div style={{ width: selected ? 340 : 0, flexShrink: 0, overflow: "hidden", transition: "width .25s ease", display: "flex", justifyContent: "flex-end" }}>
+                    <div style={{ width: 340, height: "100%", background: "var(--panel)", borderLeft: "1px solid var(--border)" }}>
+                      <TruckDetail vehicle={selected} onReportCreated={() => setTab("reports")} onClose={() => setSelected(null)} />
+                    </div>
                   </div>
                 </>
               ) : tab === "reports" ? (
@@ -179,7 +183,7 @@ export default function Home() {
               )}
             </div>
             {tab !== "admin" && (
-              <div style={{ width: tab === "alerts" ? 520 : 360, background: "var(--panel)", borderLeft: "1px solid var(--border)", flexShrink: 0, transition: "width .2s" }}>
+              <div style={{ width: chatWidth, background: "var(--panel)", borderLeft: "1px solid var(--border)", flexShrink: 0, transition: "width .25s ease" }}>
                 <ChatWidget />
               </div>
             )}
