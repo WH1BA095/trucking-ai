@@ -54,13 +54,16 @@ def _find_vehicle(db: Session, name_or_id: str) -> Vehicle | None:
     )
 
 
+_ALERT_LEVELS = {"critical", "warning", "emissions"}
+
+
 def get_fleet_summary(db: Session) -> dict:
     vehicles = db.query(Vehicle).all()
     return {
         "total": len(vehicles),
-        "moving": sum(1 for v in vehicles if v.status == "moving"),
-        "idle": sum(1 for v in vehicles if v.status == "idle"),
-        "fault": sum(1 for v in vehicles if v.status == "fault"),
+        "moving": sum(1 for v in vehicles if v.status == "moving"),  # actually in motion
+        "idle": sum(1 for v in vehicles if v.status == "idle"),      # stopped / parked
+        "with_active_fault_lamp": sum(1 for v in vehicles if (v.details or {}).get("alert_level") in _ALERT_LEVELS),
         "vehicles_with_faults": [
             {"id": v.id, "name": v.name, "fault_codes": v.fault_codes}
             for v in vehicles if v.fault_codes

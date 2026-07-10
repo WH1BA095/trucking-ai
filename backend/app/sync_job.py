@@ -89,10 +89,10 @@ def _alert_level(fault_block: dict | None, fault_codes: list[dict]) -> str:
     return "info" if fault_codes else "ok"
 
 
-def _derive_status(engine_state: str | None, speed_mph: float | None, active_warning: bool) -> str:
-    """Collapse telemetry into the coarse buckets the map/summary use."""
-    if active_warning:
-        return "fault"
+def _derive_status(engine_state: str | None, speed_mph: float | None) -> str:
+    """Motion only — moving vs stopped. Fault is a separate dimension now
+    (see alert_level), so a moving truck with a lit lamp still reads as 'moving'
+    on the map, with the fault shown as a separate marker."""
     if engine_state == "On" and (speed_mph or 0) > 0:
         return "moving"
     return "idle"
@@ -209,7 +209,7 @@ def sync_vehicles_once():
 
             fault_block = s.get("faultCodes")
             fault_codes = _extract_fault_codes(fault_block)
-            new_status = _derive_status(engine_state, speed_mph, _has_active_warning(fault_block))
+            new_status = _derive_status(engine_state, speed_mph)
             alert_level = _alert_level(fault_block, fault_codes)
 
             video_url = (

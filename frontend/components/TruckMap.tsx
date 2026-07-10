@@ -4,26 +4,36 @@ import { useEffect, useRef } from "react";
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { Vehicle, statusMeta } from "../lib/api";
+import { Vehicle, statusMeta, hasAlert } from "../lib/api";
 
-// Colored circular badge with a white truck glyph, tinted by status, plus a
-// small number label below. Replaces Leaflet's default marker image (which
-// doesn't resolve under the Next bundler and renders as a broken "Marker" label).
-const TRUCK_SVG = `<svg width="18" height="18" viewBox="0 0 24 24" fill="#fff"><path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2a3 3 0 0 0 6 0h6a3 3 0 0 0 6 0h2v-5l-3-4zM6 18.5A1.5 1.5 0 1 1 7.5 17 1.5 1.5 0 0 1 6 18.5zM19.5 9.5l1.96 2.5H17V9.5zM18 18.5A1.5 1.5 0 1 1 19.5 17 1.5 1.5 0 0 1 18 18.5z"/></svg>`;
+// Truck glyph inside a circle. Moving trucks get a white, slightly raised badge;
+// stopped ones are gray. A red "!" badge marks an active fault lamp, so faults
+// are shown independently of whether the truck is moving.
+const truckSvg = (fill: string) =>
+  `<svg width="18" height="18" viewBox="0 0 24 24" fill="${fill}"><path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2a3 3 0 0 0 6 0h6a3 3 0 0 0 6 0h2v-5l-3-4zM6 18.5A1.5 1.5 0 1 1 7.5 17 1.5 1.5 0 0 1 6 18.5zM19.5 9.5l1.96 2.5H17V9.5zM18 18.5A1.5 1.5 0 1 1 19.5 17 1.5 1.5 0 0 1 18 18.5z"/></svg>`;
 
-function truckIcon(v: Vehicle, selected: boolean) {
-  const { color } = statusMeta(v.status);
+function truckIcon(v: Vehicle, selected: boolean, alert: boolean) {
+  const moving = v.status === "moving";
+  const bg = moving ? "#ffffff" : "#9ca3af";
+  const glyph = moving ? "#334155" : "#ffffff";
+  const border = selected ? "#111827" : moving ? "#d1d5db" : "#ffffff";
+  const badge = alert
+    ? `<div style="position:absolute;top:-5px;right:-5px;width:16px;height:16px;border-radius:50%;background:#dc2626;color:#fff;border:2px solid #fff;display:flex;align-items:center;justify-content:center;font:800 11px system-ui;line-height:1;">!</div>`
+    : "";
   return L.divIcon({
     className: "",
     html: `<div style="display:flex;flex-direction:column;align-items:center;">
-      <div style="
-        background:${color};
-        width:30px;height:30px;
-        border-radius:50%;
-        display:flex;align-items:center;justify-content:center;
-        box-shadow:0 1px 4px rgba(0,0,0,.4);
-        border:2px solid ${selected ? "#111827" : "#fff"};
-      ">${TRUCK_SVG}</div>
+      <div style="position:relative;">
+        <div style="
+          background:${bg};
+          width:30px;height:30px;
+          border-radius:50%;
+          display:flex;align-items:center;justify-content:center;
+          box-shadow:0 2px 6px rgba(0,0,0,.35);
+          border:2px solid ${border};
+        ">${truckSvg(glyph)}</div>
+        ${badge}
+      </div>
       <span style="
         margin-top:-4px;
         background:#fff;color:#111827;
@@ -83,7 +93,7 @@ export default function TruckMap({
           <Marker
             key={v.id}
             position={[v.latitude as number, v.longitude as number]}
-            icon={truckIcon(v, v.id === selectedId)}
+            icon={truckIcon(v, v.id === selectedId, hasAlert(v))}
             eventHandlers={{ click: () => onSelect(v) }}
           >
             <Popup>

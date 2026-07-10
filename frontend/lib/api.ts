@@ -164,6 +164,13 @@ export function statusMeta(status: string | null) {
   return (status && STATUS_META[status]) || { color: "#9ca3af", label: status ?? "Unknown" };
 }
 
+const ACTIVE_ALERT_LEVELS = ["critical", "warning", "emissions"];
+// Truck has an active fault lamp (worth the "!" marker) — independent of motion.
+export function hasAlert(v: { details?: VehicleDetails | null }): boolean {
+  const lvl = v.details?.alert_level;
+  return !!lvl && ACTIVE_ALERT_LEVELS.includes(lvl);
+}
+
 // --- auth ---
 export async function login(username: string, password: string): Promise<{ token: string; user: User }> {
   return apiFetch("/auth/login", { method: "POST", body: JSON.stringify({ username, password }) });

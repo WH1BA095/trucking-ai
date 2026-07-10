@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
-import { fetchVehicles, fetchRoute, Vehicle, STATUS_META } from "../lib/api";
+import { fetchVehicles, fetchRoute, Vehicle, STATUS_META, hasAlert } from "../lib/api";
 import { useLang } from "../lib/i18n";
 import { useTheme } from "../lib/theme";
 import { useSettings, TIMEZONES } from "../lib/settings";
@@ -110,7 +110,12 @@ export default function Home() {
   if (!user) return <Login />;
 
   const count = (s: string) => vehicles.filter((v) => v.status === s).length;
-  const shown = filter ? vehicles.filter((v) => v.status === filter) : vehicles;
+  const faultCount = vehicles.filter(hasAlert).length;
+  const shown = !filter
+    ? vehicles
+    : filter === "fault"
+    ? vehicles.filter(hasAlert)
+    : vehicles.filter((v) => v.status === filter);
   const chatWidth = tab === "alerts" ? 520 : tab === "map" && !selected ? 560 : 360;
 
   return (
@@ -131,7 +136,7 @@ export default function Home() {
               <Metric label={t("metric.total")} value={vehicles.length} color="#1F4E79" active={filter === null} onClick={() => setFilter(null)} />
               <Metric label={t("metric.moving")} value={count("moving")} color={STATUS_META.moving.color} active={filter === "moving"} onClick={() => setFilter("moving")} />
               <Metric label={t("metric.idle")} value={count("idle")} color={STATUS_META.idle.color} active={filter === "idle"} onClick={() => setFilter("idle")} />
-              <Metric label={t("metric.fault")} value={count("fault")} color={STATUS_META.fault.color} active={filter === "fault"} onClick={() => setFilter("fault")} />
+              <Metric label={t("metric.fault")} value={faultCount} color={STATUS_META.fault.color} active={filter === "fault"} onClick={() => setFilter("fault")} />
             </div>
           )}
           <select value={timeZone} onChange={(e) => setTimeZone(e.target.value)} title="Time zone" style={{ ...ctrlBtn, fontWeight: 400 }}>
