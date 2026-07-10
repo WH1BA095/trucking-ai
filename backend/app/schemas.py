@@ -1,6 +1,9 @@
 from datetime import datetime
 from typing import Optional, Any
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
+# ~1.5 MB base64 avatar cap (keeps the DB/row size sane).
+AVATAR_MAX = 2_000_000
 
 
 class VehicleOut(BaseModel):
@@ -67,8 +70,8 @@ class UserOut(BaseModel):
 
 
 class LoginRequest(BaseModel):
-    username: str
-    password: str
+    username: str = Field(min_length=1, max_length=100)
+    password: str = Field(min_length=1, max_length=200)
 
 
 class TokenResponse(BaseModel):
@@ -77,27 +80,27 @@ class TokenResponse(BaseModel):
 
 
 class ProfileUpdate(BaseModel):
-    username: Optional[str] = None
-    password: Optional[str] = None
-    avatar: Optional[str] = None
+    username: Optional[str] = Field(default=None, min_length=1, max_length=50)
+    password: Optional[str] = Field(default=None, max_length=200)
+    avatar: Optional[str] = Field(default=None, max_length=AVATAR_MAX)
 
 
 class UserCreate(BaseModel):
-    username: str
-    password: str
+    username: str = Field(min_length=1, max_length=50)
+    password: str = Field(max_length=200)
     role: str = "moderator"
     permissions: list[str] = []
 
 
 class UserUpdate(BaseModel):
-    username: Optional[str] = None
-    password: Optional[str] = None
+    username: Optional[str] = Field(default=None, min_length=1, max_length=50)
+    password: Optional[str] = Field(default=None, max_length=200)
     role: Optional[str] = None
     permissions: Optional[list[str]] = None
 
 
 class ChatRequest(BaseModel):
-    message: str
+    message: str = Field(min_length=1, max_length=4000)
 
 
 class ChatResponse(BaseModel):

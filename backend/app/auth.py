@@ -32,6 +32,20 @@ PERMISSIONS = [
     "view_db",
     "manage_users",
 ]
+ROLES = {"admin", "moderator"}
+
+
+def validate_role(role: str) -> None:
+    from fastapi import HTTPException, status
+    if role not in ROLES:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid role (allowed: {', '.join(ROLES)})")
+
+
+def validate_permissions(perms: list[str]) -> None:
+    from fastapi import HTTPException, status
+    bad = [p for p in (perms or []) if p not in PERMISSIONS]
+    if bad:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Unknown permissions: {', '.join(bad)}")
 
 bearer = HTTPBearer(auto_error=False)
 

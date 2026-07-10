@@ -9,6 +9,7 @@ from app.schemas import (
 from app.auth import (
     PERMISSIONS, hash_password, verify_password, create_token,
     get_current_user, require_admin, validate_password, check_login_rate,
+    validate_role, validate_permissions,
 )
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -63,6 +64,8 @@ def create_user(body: UserCreate, _: User = Depends(require_admin), db: Session 
     if db.query(User).filter(User.username == body.username).first():
         raise HTTPException(status_code=409, detail="Username already taken")
     validate_password(body.password)
+    validate_role(body.role)
+    validate_permissions(body.permissions)
     user = User(
         username=body.username,
         password_hash=hash_password(body.password),
@@ -88,8 +91,10 @@ def update_user(user_id: str, body: UserUpdate, _: User = Depends(require_admin)
         validate_password(body.password)
         user.password_hash = hash_password(body.password)
     if body.role is not None:
+        validate_role(body.role)
         user.role = body.role
     if body.permissions is not None:
+        validate_permissions(body.permissions)
         user.permissions = body.permissions
     db.commit()
     db.refresh(user)
