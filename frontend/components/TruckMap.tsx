@@ -5,6 +5,7 @@ import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from "react-
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { Vehicle, statusMeta, hasAlert } from "../lib/api";
+import { useLang } from "../lib/i18n";
 
 // Truck glyph inside a circle. Moving trucks get a white, slightly raised badge;
 // stopped ones are gray. A red "!" badge marks an active fault lamp, so faults
@@ -73,6 +74,7 @@ export default function TruckMap({
   route?: [number, number][];
   onSelect: (v: Vehicle) => void;
 }) {
+  const { t } = useLang();
   const positioned = vehicles.filter((v) => v.latitude != null && v.longitude != null);
   const points = positioned.map((v) => [v.latitude, v.longitude] as [number, number]);
 
@@ -87,8 +89,10 @@ export default function TruckMap({
         <Polyline positions={route} pathOptions={{ color: "#1F4E79", weight: 4, opacity: 0.75 }} />
       )}
       {positioned.map((v) => {
-        const { color, label } = statusMeta(v.status);
+        const { color } = statusMeta(v.status);
         const faults = Array.isArray(v.fault_codes) ? v.fault_codes.length : 0;
+        const d = v.details ?? {};
+        const statusLabel = v.status === "moving" ? t("metric.moving") : v.status === "idle" ? t("metric.idle") : v.status;
         return (
           <Marker
             key={v.id}
@@ -97,12 +101,26 @@ export default function TruckMap({
             eventHandlers={{ click: () => onSelect(v) }}
           >
             <Popup>
-              <div style={{ font: "13px system-ui", minWidth: 120 }}>
-                <div style={{ fontWeight: 700, marginBottom: 4 }}>Truck {v.name}</div>
+              <div style={{ font: "13px system-ui", minWidth: 150, maxWidth: 230, color: "#111827" }}>
+                <div style={{ fontWeight: 700, marginBottom: 3 }}>{t("detail.truck")} {v.name}</div>
                 <div>
-                  <span style={{ color, fontWeight: 600 }}>● {label}</span>
+                  <span style={{ color, fontWeight: 600 }}>● {statusLabel}</span>
                   {v.speed_mph != null && <span> · {Math.round(v.speed_mph)} mph</span>}
                 </div>
+                {v.driver_name && <div style={{ color: "#374151", marginTop: 2 }}>{v.driver_name}</div>}
+                {(d.make || d.model) && <div style={{ color: "#6b7280" }}>{[d.make, d.model].filter(Boolean).join(" ")}</div>}
+                {(v.heading != null || d.location) && (
+                  <div style={{ color: "#6b7280", marginTop: 2, display: "flex", alignItems: "center", gap: 4 }}>
+                    {v.heading != null && <span style={{ display: "inline-block", transform: `rotate(${v.heading}deg)`, fontWeight: 700, color: "#1F4E79" }}>↑</span>}
+                    {d.location && <span>{d.location}</span>}
+                  </div>
+                )}
+                {d.hos && (
+                  <div style={{ color: "#059669", marginTop: 2 }}>
+                    HOS: {d.hos.status ? t(`hos.status.${d.hos.status}`) : "—"}
+                    {d.hos.drive_remaining_h != null && ` · ${d.hos.drive_remaining_h}h`}
+                  </div>
+                )}
                 {faults > 0 && (
                   <div style={{ color: "#dc2626", marginTop: 2 }}>{faults} fault code(s)</div>
                 )}

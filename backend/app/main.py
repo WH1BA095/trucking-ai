@@ -7,7 +7,7 @@ from app.config import settings
 from app.database import Base, engine
 from app.routers import vehicles, chat, reports, alerts, admin, auth
 from app.sync_job import start_scheduler
-from app.auth import seed_admin
+from app.auth import seed_admin, security_startup_warnings
 
 logging.basicConfig(level=logging.INFO)
 
@@ -34,6 +34,7 @@ def on_startup():
     # switch to Alembic migrations before this touches a shared/production DB.
     Base.metadata.create_all(bind=engine)
     seed_admin()
+    security_startup_warnings()
     start_scheduler()
 
 

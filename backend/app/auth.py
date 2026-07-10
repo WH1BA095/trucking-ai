@@ -2,6 +2,9 @@
 Authentication & authorization: password hashing (bcrypt), JWT tokens, the
 current-user dependency, permission checks, and the first-run admin seed.
 """
+import logging
+import time
+from collections import defaultdict, deque
 from datetime import datetime, timedelta, timezone
 
 import bcrypt
@@ -14,6 +17,12 @@ from app.config import settings
 from app.database import SessionLocal, get_db
 from app.models import User
 
+logger = logging.getLogger("auth")
+
+MIN_PASSWORD_LEN = 8
+DEFAULT_JWT_SECRET = "dev-secret-change-me"
+DEFAULT_ADMIN_PASSWORD = "admin123456"
+
 # All permission keys the UI/checkboxes offer. Admins implicitly have all.
 PERMISSIONS = [
     "view_map",
@@ -25,6 +34,31 @@ PERMISSIONS = [
 ]
 
 bearer = HTTPBearer(auto_error=False)
+
+
+def validate_password(password: str) -> None:
+    """Raise 400 if the password is too weak."""
+    if len(password or "") < MIN_PASSWORD_LEN:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Password must be at least {MIN_PASSWORD_LEN} characters",
+        )
+
+
+# --- Login rate limiting (simple in-memory, per IP) ---
+_LOGIN_WINDOW = 300      # seconds
+_LOGIN_MAX_ATTEMPTS = 10
+_login_hits: dict[str, deque] = defaultdict(deque)
+
+
+def check_login_rate(ip: str) -> None:
+    now = time.time()
+    hits = _login_hits[ip]
+    while hits and now - hits[0] > _LOGIN_WINDOW:
+        hits.popleft()
+    if len(hits) >= _LOGIN_MAX_ATTEMPTS:
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Too many attempts, try again later")
+    hits.append(now)
 
 
 def hash_password(password: str) -> str:
@@ -88,10 +122,23 @@ def seed_admin():
         if db.query(User).count() == 0:
             db.add(User(
                 username="admin",
-                password_hash=hash_password("admin123456"),
+                password_hash=hash_password(DEFAULT_ADMIN_PASSWORD),
                 role="admin",
                 permissions=list(PERMISSIONS),
             ))
             db.commit()
+    finally:
+        db.close()
+
+
+def security_startup_warnings():
+    """Loud warnings for insecure-by-default settings — must be fixed before hosting."""
+    if settings.jwt_secret == DEFAULT_JWT_SECRET:
+        logger.critical("SECURITY: JWT_SECRET is the default value — set a strong JWT_SECRET before hosting!")
+    db = SessionLocal()
+    try:
+        admin = db.query(User).filter(User.username == "admin").first()
+        if admin and verify_password(DEFAULT_ADMIN_PASSWORD, admin.password_hash):
+            logger.critical("SECURITY: default admin password is unchanged — change it before hosting!")
     finally:
         db.close()

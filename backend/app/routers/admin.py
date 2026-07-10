@@ -27,6 +27,17 @@ def _table_names() -> list[str]:
     return sorted(inspect(engine).get_table_names())
 
 
+# Never expose these in the viewer, even to an admin (password hashes, secrets).
+_SENSITIVE = ("password", "secret", "token", "hash")
+
+
+def _redact(row: dict) -> dict:
+    return {
+        k: ("••••••" if v is not None and any(s in k.lower() for s in _SENSITIVE) else v)
+        for k, v in row.items()
+    }
+
+
 @router.get("/tables")
 def list_tables():
     """All table names with their row counts."""
@@ -61,5 +72,5 @@ def get_table(table: str, limit: int = Query(100, ge=1, le=500), offset: int = Q
         "total": total,
         "limit": limit,
         "offset": offset,
-        "rows": jsonable_encoder([dict(r) for r in rows]),
+        "rows": jsonable_encoder([_redact(dict(r)) for r in rows]),
     }
