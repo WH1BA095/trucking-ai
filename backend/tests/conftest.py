@@ -30,7 +30,7 @@ _create_test_db()
 from app.database import Base, engine  # noqa: E402
 import app.models  # noqa: E402,F401
 from app.main import app  # noqa: E402
-from app.auth import seed_admin, _login_hits  # noqa: E402
+from app.auth import seed_admin, _login_hits, _rate_hits  # noqa: E402
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -44,8 +44,9 @@ def _setup_schema():
 
 @pytest.fixture(autouse=True)
 def _reset_login_rate():
-    # keep the in-memory login rate limiter from leaking across tests
+    # keep the in-memory rate limiters from leaking across tests
     _login_hits.clear()
+    _rate_hits.clear()
     yield
 
 

@@ -1,116 +1,95 @@
-# Fleet AI Dashboard — стартовый скелет
+# Fleet AI Dashboard
 
-Дашборд: карта траков (данные из Samsara) + деталка по клику + чат с ИИ-агентом
-поверх тех же данных. Спроектирован так, чтобы локальный запуск сегодня
-переехал на хостинг позже без переписывания кода — единственное, что меняется,
-это значения в `.env`.
+Dashboard + AI agent for a US trucking company. Live truck map, per-truck detail
+(telemetry, faults, HOS), an AI assistant over the fleet data, bilingual reports,
+fault alerts, and role-based accounts.
 
-## Почему так спроектировано (важно понимать, не только копировать)
-
-- **Вся конфигурация — через переменные окружения**, нигде в коде нет
-  захардкоженных `localhost`. `app/config.py` — единственное место, которое
-  читает `.env`. Когда переедете на хостинг, меняете `DATABASE_URL` на адрес
-  managed Postgres и `ALLOWED_ORIGINS`/`NEXT_PUBLIC_API_URL` на реальные домены
-  — код не трогаете вообще.
-- **Агент никогда не стучится в Samsara напрямую во время диалога.**
-  Отдельный фоновый job (`sync_job.py`) периодически подтягивает данные из
-  Samsara в вашу же Postgres. Чат читает только из своей базы — быстро и не
-  зависит от лимитов/аптайма Samsara в момент разговора.
-- **Инструменты агента (`agent/tools.py`) — единственное место**, где описано,
-  что агент умеет делать. Добавляя новую функцию (SMS, поиск сервиса и т.д.),
-  трогаете только этот файл и роутер чата.
-- **История чата хранится в БД по `user_id`** — контекст разных пользователей
-  физически не пересекается (см. `chat.py`).
-
-## Структура проекта
+## Architecture
 
 ```
-trucking-ai-dashboard/
-├── docker-compose.yml       # локальная Postgres+pgvector
-├── .env.example              # шаблон конфига backend
-├── backend/
-│   ├── requirements.txt
-│   └── app/
-│       ├── main.py            # точка входа FastAPI
-│       ├── config.py          # единственное место чтения env
-│       ├── database.py
-│       ├── models.py          # Vehicle, VehicleEvent, ChatMessage
-│       ├── samsara_client.py  # весь код специфичный для Samsara — здесь и только здесь
-│       ├── sync_job.py        # фоновая синхронизация Samsara → своя БД
-│       ├── routers/
-│       │   ├── vehicles.py    # GET /vehicles — то, что рисует карта
-│       │   └── chat.py        # POST /chat — агент с tool use
-│       └── agent/
-│           ├── tools.py       # что агент умеет делать
-│           └── prompts.py     # системный промпт
-└── frontend/
-    ├── .env.local.example
-    ├── app/page.tsx            # главная страница: карта + деталка + чат
-    └── components/
-        ├── TruckMap.tsx
-        ├── TruckDetail.tsx
-        └── ChatWidget.tsx
+Samsara API ─┐
+Alvys API   ─┼─► [ sync job (interval) ] ─► Postgres ─► FastAPI ─► Next.js UI
+             │                                            │
+             └────────────────────────────────────────► AI agent (reads DB only)
 ```
 
-## Запуск локально — по шагам
+- **Backend:** Python + FastAPI. LLMs: Claude Haiku 4.5 (chat), Sonnet 5 (reports).
+- **DB:** PostgreSQL (+pgvector image). Schema via **Alembic**.
+- **Frontend:** Next.js + React, map via react-leaflet.
+- **Principle:** the agent and dashboard read only from our DB. A background job
+  syncs external APIs (Samsara, later Alvys) into the DB. Config is 100% env vars.
 
-### 1. База данных
+## Local setup
+
+Prereqs: Docker, Python 3.12, Node 20+.
+
 ```bash
-docker compose up -d
-```
+# 1. config
+cp .env.example .env          # fill in ANTHROPIC_API_KEY, SAMSARA_API_TOKEN, JWT_SECRET
+cp frontend/.env.local.example frontend/.env.local
 
-### 2. Backend
-```bash
+# 2. database
+docker compose up -d db
+
+# 3. backend
 cd backend
-python -m venv venv
-source venv/bin/activate        # Windows: venv\Scripts\activate
+python3.12 -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
-
-cp ../.env.example ../.env
-# откройте .env и впишите реальные ANTHROPIC_API_KEY и SAMSARA_API_TOKEN
-
+alembic upgrade head          # create/upgrade schema
 uvicorn app.main:app --reload --port 8000
-```
-Проверка: откройте `http://localhost:8000/docs` — должна открыться Swagger-документация
-со всеми эндпоинтами (`/vehicles`, `/chat`, `/health`).
 
-### 3. Frontend
-```bash
+# 4. frontend (new terminal)
 cd frontend
 npm install
-cp .env.local.example .env.local
 npm run dev
 ```
-Откройте `http://localhost:3000` — карта, деталка по клику на трак, чат справа.
 
-## Что нужно донастроить под реальный аккаунт Samsara
+Open http://localhost:3000 and log in (default admin: `admin` / `admin123456` —
+**change it immediately** in the profile menu).
 
-`app/samsara_client.py` написан по общей структуре Samsara API, но **точные
-пути эндпоинтов и поля в ответах нужно сверить с актуальной документацией**
-(https://developers.samsara.com) под ваш конкретный аккаунт и версию API —
-это единственный файл, который может потребовать правок под реальные данные.
-Если у Samsara есть sandbox/демо-аккаунт — начните с него, чтобы не трогать
-продовые данные компании во время разработки.
+## Common tasks
 
-## Как это едет на хостинг позже (когда будете готовы)
+```bash
+# run tests (uses an isolated trucking_agent_test DB)
+cd backend && python -m pytest
 
-1. Поднимаете managed Postgres у хостинг-провайдера (Railway/Render и т.п.),
-   меняете `DATABASE_URL` в `.env` на его адрес.
-2. Деплоите папку `backend/` как отдельный сервис (Railway/Render видят
-   `requirements.txt` и `uvicorn` автоматически либо через простой Dockerfile).
-3. Деплоите `frontend/` как отдельный сервис (Vercel — нативно для Next.js,
-   либо тот же Railway/Render), выставляете `NEXT_PUBLIC_API_URL` на адрес
-   задеплоенного backend.
-4. В backend `.env` на хостинге прописываете реальный домен фронтенда в
-   `ALLOWED_ORIGINS`.
+# after changing models.py — create + apply a migration
+cd backend
+alembic revision --autogenerate -m "describe change"
+alembic upgrade head
+```
 
-Ни одна строчка кода при этом не меняется — только значения в `.env` на
-хостинг-платформе.
+## Deploy (staging / self-hosted)
 
-## Дальнейшие шаги (после того как это заработало)
+Full stack in containers:
 
-- Добавить инструмент `send_sms` в `agent/tools.py` + роутер для уведомлений
-- Добавить RAG (pgvector уже подключён) для базы знаний компании
-- Заменить `Base.metadata.create_all` на нормальные миграции (Alembic) перед
-  тем как база станет боевой
-- Добавить реальную авторизацию вместо `USER_ID = "demo-user"` в чате
+```bash
+cp .env.example .env          # real secrets + your domain
+docker compose -f docker-compose.prod.yml up -d --build
+```
+
+Before hosting publicly:
+- Set a strong `JWT_SECRET` (`python -c "import secrets;print(secrets.token_urlsafe(48))"`).
+- Set `ALLOWED_ORIGINS` and `NEXT_PUBLIC_API_URL` to your real domain.
+- Serve over **HTTPS** (reverse proxy: Nginx/Caddy in front of the containers).
+- Set `ADMIN_ENABLED=false` (the DB-viewer tab) until it's gated behind admin auth.
+- Use a managed Postgres with backups.
+- Run a single backend replica (the sync scheduler runs in-process).
+
+## Key env vars
+
+| Var | What |
+|---|---|
+| `DATABASE_URL` | Postgres connection |
+| `ANTHROPIC_API_KEY` | Claude API key |
+| `AGENT_MODEL` / `REPORT_MODEL` | chat / report models |
+| `SAMSARA_API_TOKEN` | Samsara API (read scopes: vehicles, stats, faults, ELD; media optional) |
+| `ALVYS_CLIENT_ID` / `ALVYS_CLIENT_SECRET` | Alvys TMS (planned — see docs/) |
+| `JWT_SECRET` | signs login tokens (change in prod) |
+| `SYNC_INTERVAL_SECONDS` | how often to pull from Samsara |
+| `ALLOWED_ORIGINS` | CORS origin(s) |
+| `ADMIN_ENABLED` | read-only DB viewer tab (off in prod) |
+
+## Docs
+
+- `docs/alvys-integration-plan.md` — Alvys TMS integration plan.

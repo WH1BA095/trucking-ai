@@ -8,7 +8,7 @@ from app.database import get_db, SessionLocal
 from app.models import TruckReport, Vehicle, User
 from app.schemas import ReportOut, GenerateReportRequest
 from app.agent.reports import generate_report
-from app.auth import get_current_user, require_permission
+from app.auth import get_current_user, require_permission, rate_limit
 
 router = APIRouter(prefix="/reports", tags=["reports"])
 logger = logging.getLogger("reports")
@@ -31,6 +31,7 @@ def list_reports(vehicle_id: str | None = None, user: User = Depends(get_current
 @router.post("/generate", response_model=ReportOut)
 def generate(body: GenerateReportRequest, user: User = Depends(require_permission("generate_reports")), db: Session = Depends(get_db)):
     """Generate + save a report for a vehicle on demand (the "Generate report" button)."""
+    rate_limit(f"report:{user.id}", max_calls=20, window=60)  # 20 reports/min per user
     vehicle = db.get(Vehicle, body.vehicle_id)
     if not vehicle:
         raise HTTPException(status_code=404, detail="Vehicle not found")
@@ -54,6 +55,7 @@ def _bulk_generate(user_id: str):
 @router.post("/generate-all")
 def generate_all(user: User = Depends(require_permission("generate_reports")), db: Session = Depends(get_db)):
     """Kick off report generation for the whole fleet in the background."""
+    rate_limit(f"report-all:{user.id}", max_calls=3, window=300)  # 3 fleet-wide runs / 5 min
     if not _bulk_lock.acquire(blocking=False):
         raise HTTPException(status_code=409, detail="A bulk report run is already in progress")
     total = db.query(Vehicle).count()

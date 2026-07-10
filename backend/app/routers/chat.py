@@ -8,7 +8,7 @@ from app.models import ChatMessage, User
 from app.schemas import ChatRequest, ChatResponse
 from app.agent.tools import TOOL_DEFINITIONS, execute_tool
 from app.agent.prompts import SYSTEM_PROMPT
-from app.auth import get_current_user
+from app.auth import get_current_user, rate_limit
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
@@ -18,6 +18,7 @@ HISTORY_LIMIT = 10  # last N messages per user kept in the prompt — keeps cost
 
 @router.post("", response_model=ChatResponse)
 def chat(req: ChatRequest, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    rate_limit(f"chat:{user.id}", max_calls=30, window=60)  # 30 messages/min per user
     # Load this user's recent history only — never another user's.
     history_rows = (
         db.query(ChatMessage)

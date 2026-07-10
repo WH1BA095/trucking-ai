@@ -75,6 +75,21 @@ def check_login_rate(ip: str) -> None:
     hits.append(now)
 
 
+# Generic per-key rate limiter (used to cap expensive per-user endpoints — chat,
+# report generation — so an authenticated user can't rack up LLM cost).
+_rate_hits: dict[str, deque] = defaultdict(deque)
+
+
+def rate_limit(key: str, max_calls: int, window: int) -> None:
+    now = time.time()
+    hits = _rate_hits[key]
+    while hits and now - hits[0] > window:
+        hits.popleft()
+    if len(hits) >= max_calls:
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Rate limit exceeded, slow down")
+    hits.append(now)
+
+
 def hash_password(password: str) -> str:
     return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
 
