@@ -1,0 +1,52 @@
+# Full stack in containers — for staging / self-hosted prod.
+# Local dev still uses docker-compose.yml (db only) + native uvicorn/npm.
+#
+# Usage:
+#   cp .env.example .env   (fill in real secrets)
+#   docker compose -f docker-compose.prod.yml up -d --build
+#
+# For a real host, set NEXT_PUBLIC_API_URL and ALLOWED_ORIGINS to your domain,
+# and JWT_SECRET / ANTHROPIC_API_KEY / SAMSARA_API_TOKEN in .env.
+
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-localpass}
+      POSTGRES_DB: ${POSTGRES_DB:-trucking_agent}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      # Reach Postgres by its compose service name, not localhost.
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-localpass}@db:5432/${POSTGRES_DB:-trucking_agent}
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "3000:3000"
+
+volumes:
+  pgdata:
