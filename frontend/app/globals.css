@@ -10,6 +10,9 @@
   --fault-bg: #fff5f5;
   --fault-border: #fee2e2;
   --fault-title: #b91c1c;
+  --warn-bg: #fffbeb;
+  --warn-border: #fde68a;
+  --warn-title: #b45309;
   --alert-critical-bg: #fef2f2;
   --alert-warning-bg: #fffbeb;
   --alert-emissions-bg: #eff6ff;
@@ -28,6 +31,9 @@
   --fault-bg: #241a1b;
   --fault-border: #4a2b2e;
   --fault-title: #f87171;
+  --warn-bg: #241f12;
+  --warn-border: #4a3d1a;
+  --warn-title: #fbbf24;
   --alert-critical-bg: #241618;
   --alert-warning-bg: #241f12;
   --alert-emissions-bg: #15202f;

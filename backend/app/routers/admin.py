@@ -7,14 +7,15 @@ parameters, and the whole router is gated behind settings.admin_enabled. It is
 read-only — no writes. Turn it off (ADMIN_ENABLED=false) before hosting until
 there's real auth, since it exposes every table (chat history, raw payloads).
 """
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy import inspect, text
 
 from app.config import settings
 from app.database import engine
+from app.auth import require_permission
 
-router = APIRouter(prefix="/admin", tags=["admin"])
+router = APIRouter(prefix="/admin", tags=["admin"], dependencies=[Depends(require_permission("view_db"))])
 
 
 def _guard():

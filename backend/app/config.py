@@ -37,6 +37,10 @@ class Settings(BaseSettings):
     sync_interval_seconds: int = 300
     allowed_origins: str = "http://localhost:3000"
 
+    # Auth. CHANGE jwt_secret in production (any long random string in .env).
+    jwt_secret: str = "dev-secret-change-me"
+    jwt_expire_hours: int = 168  # session remembered for a week
+
     # Admin alerts (SMS not wired yet — see app/notifications.py)
     admin_phone: str = ""
 

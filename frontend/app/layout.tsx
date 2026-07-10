@@ -2,6 +2,7 @@ import "./globals.css";
 import { LangProvider } from "../lib/i18n";
 import { ThemeProvider } from "../lib/theme";
 import { SettingsProvider } from "../lib/settings";
+import { AuthProvider } from "../lib/auth";
 
 export const metadata = {
   title: "Fleet AI Dashboard",
@@ -13,7 +14,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body style={{ margin: 0, fontFamily: "system-ui, sans-serif" }}>
         <ThemeProvider>
           <LangProvider>
-            <SettingsProvider>{children}</SettingsProvider>
+            <SettingsProvider>
+              <AuthProvider>{children}</AuthProvider>
+            </SettingsProvider>
           </LangProvider>
         </ThemeProvider>
       </body>

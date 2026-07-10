@@ -5,8 +5,9 @@ from app.database import get_db
 from app.models import Vehicle
 from app.schemas import AlertOut
 from app.notifications import build_alert_message
+from app.auth import get_current_user
 
-router = APIRouter(prefix="/alerts", tags=["alerts"])
+router = APIRouter(prefix="/alerts", tags=["alerts"], dependencies=[Depends(get_current_user)])
 
 # Only these levels are shown as alerts; "info"/"ok" are not actionable.
 ALERT_LEVELS = {"critical": 0, "warning": 1, "emissions": 2}

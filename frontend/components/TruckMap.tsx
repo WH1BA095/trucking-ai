@@ -94,7 +94,7 @@ export default function TruckMap({
                   {v.speed_mph != null && <span> · {Math.round(v.speed_mph)} mph</span>}
                 </div>
                 {faults > 0 && (
-                  <div style={{ color: "#dc2626", marginTop: 2 }}>⚠ {faults} fault code(s)</div>
+                  <div style={{ color: "#dc2626", marginTop: 2 }}>{faults} fault code(s)</div>
                 )}
               </div>
             </Popup>

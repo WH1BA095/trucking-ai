@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Vehicle, FaultCode, Report, statusMeta, generateReport } from "../lib/api";
 import { useLang } from "../lib/i18n";
 import { useSettings } from "../lib/settings";
+import { Icon } from "./icons";
 
 function Field({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -14,7 +15,7 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({ title, children }: { title: React.ReactNode; children: React.ReactNode }) {
   return (
     <div style={{ marginTop: 22 }}>
       <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", marginBottom: 10 }}>{title}</div>
@@ -27,13 +28,15 @@ function Grid({ children }: { children: React.ReactNode }) {
   return <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>{children}</div>;
 }
 
-function FaultRow({ f, unknown }: { f: FaultCode; unknown: string }) {
-  const sev = f.severity === "high" ? "#b91c1c" : f.severity === "medium" ? "#d97706" : "var(--muted)";
+function FaultRow({ f, unknown, canDrive }: { f: FaultCode; unknown: string; canDrive: boolean }) {
+  const bg = canDrive ? "var(--warn-bg)" : "var(--fault-bg)";
+  const bd = canDrive ? "var(--warn-border)" : "var(--fault-border)";
+  const title = canDrive ? "var(--warn-title)" : "var(--fault-title)";
   return (
-    <div style={{ border: "1px solid var(--fault-border)", background: "var(--fault-bg)", borderRadius: 8, padding: "8px 10px", marginTop: 8 }}>
+    <div style={{ border: `1px solid ${bd}`, background: bg, borderRadius: 8, padding: "8px 10px", marginTop: 8 }}>
       <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
-        <span style={{ fontWeight: 600, color: "var(--fault-title)", fontSize: 14 }}>
-          <span style={{ display: "inline-block", width: 7, height: 7, borderRadius: "50%", background: sev, marginRight: 6 }} />
+        <span style={{ fontWeight: 600, color: title, fontSize: 14, display: "inline-flex", alignItems: "center", gap: 5 }}>
+          {!canDrive && <Icon name="alert" size={13} />}
           {f.fault || f.description || "Fault"}
         </span>
         {f.count != null && <span style={{ fontSize: 12, color: "var(--muted)", whiteSpace: "nowrap" }}>×{f.count}</span>}
@@ -48,6 +51,13 @@ function FaultRow({ f, unknown }: { f: FaultCode; unknown: string }) {
 
 const num = (v: number | null | undefined, suffix = "", fallback = "—") =>
   v != null ? `${v.toLocaleString()}${suffix}` : fallback;
+
+const HOS_COLOR: Record<string, string> = {
+  driving: "#16a34a",
+  onDuty: "#d97706",
+  offDuty: "#6b7280",
+  sleeperBed: "#2563eb",
+};
 
 export default function TruckDetail({ vehicle, onReportCreated }: { vehicle: Vehicle | null; onReportCreated?: (report: Report) => void }) {
   const { t } = useLang();
@@ -87,6 +97,7 @@ export default function TruckDetail({ vehicle, onReportCreated }: { vehicle: Veh
   const { color, label } = statusMeta(vehicle.status);
   const faults = Array.isArray(vehicle.fault_codes) ? vehicle.fault_codes : [];
   const d = vehicle.details ?? {};
+  const canDrive = d.drivable !== false;
   const updated = vehicle.updated_at ? formatDateTime(vehicle.updated_at) : null;
 
   return (
@@ -101,7 +112,7 @@ export default function TruckDetail({ vehicle, onReportCreated }: { vehicle: Veh
         disabled={reporting}
         style={{ marginTop: 14, width: "100%", padding: "10px 14px", background: reporting ? "var(--muted)" : "#1F4E79", color: "#fff", border: "none", borderRadius: 8, fontWeight: 600, fontSize: 14, cursor: reporting ? "default" : "pointer" }}
       >
-        {reporting ? t("detail.generating") : `📋 ${t("detail.genReport")}`}
+        {reporting ? t("detail.generating") : <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><Icon name="report" size={15} /> {t("detail.genReport")}</span>}
       </button>
       {done && <div style={{ fontSize: 13, color: "#16a34a", marginTop: 8, textAlign: "center" }}>✓ {t("detail.reportSaved")}</div>}
 
@@ -116,8 +127,38 @@ export default function TruckDetail({ vehicle, onReportCreated }: { vehicle: Veh
 
       {d.location && (
         <div style={{ marginTop: 16 }}>
-          <Field label={t("detail.location")} value={<span>📍 {d.location}</span>} />
+          <Field label={t("detail.location")} value={<span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Icon name="pin" size={14} /> {d.location}</span>} />
         </div>
+      )}
+
+      {d.hos && (
+        <Section
+          title={
+            <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span>{t("detail.hos")}</span>
+              {d.hos.violation && (
+                <span style={{ background: "var(--fault-title)", color: "#fff", fontSize: 11, fontWeight: 700, padding: "2px 9px", borderRadius: 999 }}>{t("hos.violation")}</span>
+              )}
+            </span>
+          }
+        >
+          <div style={{ marginBottom: 12 }}>
+            <Field
+              label={t("hos.duty")}
+              value={
+                <span style={{ color: HOS_COLOR[d.hos.status ?? ""] ?? "var(--text)", fontWeight: 600 }}>
+                  {d.hos.status ? t(`hos.status.${d.hos.status}`) : "—"}
+                </span>
+              }
+            />
+          </div>
+          <Grid>
+            <Field label={t("hos.drive")} value={num(d.hos.drive_remaining_h, " h")} />
+            <Field label={t("hos.shift")} value={num(d.hos.shift_remaining_h, " h")} />
+            <Field label={t("hos.cycle")} value={num(d.hos.cycle_remaining_h, " h")} />
+            <Field label={t("hos.break")} value={num(d.hos.break_in_h, " h")} />
+          </Grid>
+        </Section>
       )}
 
       <Section title={t("detail.telemetry")}>
@@ -149,11 +190,23 @@ export default function TruckDetail({ vehicle, onReportCreated }: { vehicle: Veh
         )}
       </Section>
 
-      <Section title={`${t("detail.faultCodes")}${faults.length ? ` (${faults.length})` : ""}`}>
+      <Section
+        title={
+          <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span>{t("detail.faultCodes")}{faults.length ? ` (${faults.length})` : ""}</span>
+            {faults.length > 0 && (
+              <span style={{ background: canDrive ? "var(--warn-title)" : "var(--fault-title)", color: "#fff", fontSize: 11, fontWeight: 700, padding: "2px 9px", borderRadius: 999, display: "inline-flex", alignItems: "center", gap: 5 }}>
+                {!canDrive && <Icon name="alert" size={12} />}
+                {canDrive ? t("detail.driveOk") : t("detail.driveNo")}
+              </span>
+            )}
+          </span>
+        }
+      >
         {faults.length === 0 ? (
           <div style={{ fontSize: 13, color: "#16a34a" }}>✓ {t("detail.noFaults")}</div>
         ) : (
-          faults.map((f, i) => <FaultRow key={i} f={f} unknown="—" />)
+          faults.map((f, i) => <FaultRow key={i} f={f} unknown="—" canDrive={canDrive} />)
         )}
       </Section>
 

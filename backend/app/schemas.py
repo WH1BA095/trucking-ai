@@ -55,8 +55,48 @@ class GenerateReportRequest(BaseModel):
     vehicle_id: str
 
 
+class UserOut(BaseModel):
+    id: str
+    username: str
+    role: str
+    permissions: Optional[list[str]] = None
+    avatar: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+
+class TokenResponse(BaseModel):
+    token: str
+    user: UserOut
+
+
+class ProfileUpdate(BaseModel):
+    username: Optional[str] = None
+    password: Optional[str] = None
+    avatar: Optional[str] = None
+
+
+class UserCreate(BaseModel):
+    username: str
+    password: str
+    role: str = "moderator"
+    permissions: list[str] = []
+
+
+class UserUpdate(BaseModel):
+    username: Optional[str] = None
+    password: Optional[str] = None
+    role: Optional[str] = None
+    permissions: Optional[list[str]] = None
+
+
 class ChatRequest(BaseModel):
-    user_id: str
     message: str
 
 

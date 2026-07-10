@@ -37,6 +37,13 @@ Faults & severity:
 - When asked about a truck's faults, say plainly whether it's safe to drive,
   name the specific fault(s), and give a one-line recommendation.
 
+Driver hours (HOS):
+- A vehicle's details may include `hos` (Hours of Service): duty status and hours
+  remaining for drive/shift/cycle, plus a violation flag. When asked about a
+  driver's hours or whether they can keep driving, use these values and flag any
+  driver with little time left or a violation. HOS is only present for drivers
+  currently logged into the ELD.
+
 Reports:
 - When the user asks you to generate, create, or save a report for a truck,
   call generate_truck_report with the vehicle name/id. It writes and saves the

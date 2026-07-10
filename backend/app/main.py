@@ -5,8 +5,9 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.database import Base, engine
-from app.routers import vehicles, chat, reports, alerts, admin
+from app.routers import vehicles, chat, reports, alerts, admin, auth
 from app.sync_job import start_scheduler
+from app.auth import seed_admin
 
 logging.basicConfig(level=logging.INFO)
 
@@ -19,6 +20,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(auth.router)
 app.include_router(vehicles.router)
 app.include_router(chat.router)
 app.include_router(reports.router)
@@ -31,6 +33,7 @@ def on_startup():
     # Creates tables if they don't exist yet. Fine for early development;
     # switch to Alembic migrations before this touches a shared/production DB.
     Base.metadata.create_all(bind=engine)
+    seed_admin()
     start_scheduler()
 
 

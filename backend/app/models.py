@@ -47,6 +47,20 @@ class VehicleEvent(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
+class User(Base):
+    """Dashboard account. Login/password auth, a role, and a list of permission
+    keys that gate what the user can see/do."""
+    __tablename__ = "users"
+
+    id = Column(String, primary_key=True, default=gen_uuid)
+    username = Column(String, unique=True, nullable=False, index=True)
+    password_hash = Column(String, nullable=False)
+    role = Column(String, nullable=False, default="moderator")  # "admin" | "moderator"
+    permissions = Column(JSON, nullable=True)  # list of permission keys
+    avatar = Column(Text, nullable=True)  # base64 data URL
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
 class TruckReport(Base):
     """An agent-generated report about one vehicle, saved for later viewing in
     the Reports tab. `content` is the agent's written analysis; `snapshot` keeps
@@ -54,6 +68,7 @@ class TruckReport(Base):
     __tablename__ = "truck_reports"
 
     id = Column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
+    user_id = Column(String, ForeignKey("users.id"), nullable=True, index=True)  # creator
     vehicle_id = Column(String, ForeignKey("vehicles.id"), nullable=False, index=True)
     vehicle_name = Column(String, nullable=True)  # denormalized for easy listing
     title = Column(String, nullable=False)

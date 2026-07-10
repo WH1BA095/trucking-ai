@@ -1,13 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { sendChatMessage } from "../lib/api";
+import { sendChatMessage, fetchChatHistory } from "../lib/api";
 import { useLang } from "../lib/i18n";
+import { Icon } from "./icons";
 
 type Msg = { role: "user" | "assistant"; text: string };
-
-// Placeholder until real auth exists — swap for the logged-in user's id.
-const USER_ID = "demo-user";
 
 export default function ChatWidget() {
   const { t } = useLang();
@@ -15,6 +13,11 @@ export default function ChatWidget() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Restore this user's saved conversation on mount.
+  useEffect(() => {
+    fetchChatHistory().then(setMsgs).catch(console.error);
+  }, []);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
@@ -27,7 +30,7 @@ export default function ChatWidget() {
     setMsgs((m) => [...m, { role: "user", text }]);
     setLoading(true);
     try {
-      const reply = await sendChatMessage(USER_ID, text);
+      const reply = await sendChatMessage(text);
       setMsgs((m) => [...m, { role: "assistant", text: reply }]);
     } catch (e) {
       setMsgs((m) => [...m, { role: "assistant", text: t("chat.error") }]);
@@ -38,8 +41,8 @@ export default function ChatWidget() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
-      <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--border)", fontWeight: 600, color: "var(--text)" }}>
-        💬 {t("chat.title")}
+      <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--border)", fontWeight: 600, color: "var(--text)", display: "flex", alignItems: "center", gap: 8 }}>
+        <Icon name="chat" size={16} /> {t("chat.title")}
       </div>
 
       <div ref={scrollRef} style={{ flex: 1, overflowY: "auto", padding: 14, background: "var(--panel2)" }}>

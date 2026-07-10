@@ -145,20 +145,45 @@ def _build_details(vehicle: dict, stats: dict) -> dict:
     }
 
 
-def _driver_map(assignments: list[dict]) -> dict[str, str]:
-    """vehicle_id -> current driver name (latest non-passenger assignment)."""
-    best: dict[str, tuple[str, str]] = {}  # vid -> (startTime, name)
+def _driver_map(assignments: list[dict]) -> dict[str, dict]:
+    """vehicle_id -> {name, id} of the current driver (latest non-passenger assignment)."""
+    best: dict[str, tuple[str, dict]] = {}  # vid -> (startTime, {name, id})
     for a in assignments:
         if a.get("isPassenger"):
             continue
         vid = (a.get("vehicle") or {}).get("id")
-        name = (a.get("driver") or {}).get("name")
+        driver = a.get("driver") or {}
+        name = driver.get("name")
         start = a.get("startTime") or ""
         if not vid or not name:
             continue
         if vid not in best or start > best[vid][0]:
-            best[vid] = (start, name)
-    return {vid: name for vid, (_, name) in best.items()}
+            best[vid] = (start, {"name": (name or "").strip(), "id": driver.get("id")})
+    return {vid: info for vid, (_, info) in best.items()}
+
+
+def _hos_map(clocks: list[dict]) -> dict[str, dict]:
+    """driver_id -> normalized HOS: duty status + remaining hours + violation flag."""
+
+    def hours(ms):
+        return round(ms / 3_600_000, 1) if isinstance(ms, (int, float)) else None
+
+    out = {}
+    for c in clocks:
+        did = (c.get("driver") or {}).get("id")
+        if not did:
+            continue
+        clk = c.get("clocks") or {}
+        viol = c.get("violations") or {}
+        out[did] = {
+            "status": (c.get("currentDutyStatus") or {}).get("hosStatusType"),
+            "drive_remaining_h": hours((clk.get("drive") or {}).get("driveRemainingDurationMs")),
+            "shift_remaining_h": hours((clk.get("shift") or {}).get("shiftRemainingDurationMs")),
+            "cycle_remaining_h": hours((clk.get("cycle") or {}).get("cycleRemainingDurationMs")),
+            "break_in_h": hours((clk.get("break") or {}).get("timeUntilBreakDurationMs")),
+            "violation": any((viol.get(k) or 0) > 0 for k in viol),
+        }
+    return out
 
 
 def sync_vehicles_once():
@@ -168,6 +193,12 @@ def sync_vehicles_once():
         # One call returns gps + engine + faults + telemetry for the whole fleet.
         stats = {s["id"]: s for s in samsara_client.get_vehicle_stats()}
         drivers = _driver_map(samsara_client.get_driver_assignments())
+        try:
+            hos_by_driver = _hos_map(samsara_client.get_hos_clocks())
+        except Exception:
+            # HOS needs the ELD token scope; if it's missing don't fail the sync.
+            logger.warning("HOS fetch failed (missing ELD scope?) — skipping HOS this run")
+            hos_by_driver = {}
 
         for v in vehicles:
             vehicle_id = str(v["id"])
@@ -202,13 +233,16 @@ def sync_vehicles_once():
                     description=f"{existing.status} -> {new_status}",
                 ))
 
+            driver_info = drivers.get(v["id"]) or {}
+
             details = _build_details(v, s)
             details["alert_level"] = alert_level
             details["drivable"] = alert_level != "critical"
             details["lamps"] = _active_lamps(fault_block)
+            details["hos"] = hos_by_driver.get(driver_info.get("id"))
 
             existing.name = v.get("name", vehicle_id)
-            existing.driver_name = drivers.get(v["id"])
+            existing.driver_name = driver_info.get("name")
             existing.latitude = gps.get("latitude")
             existing.longitude = gps.get("longitude")
             existing.heading = gps.get("headingDegrees")

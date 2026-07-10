@@ -82,6 +82,11 @@ class SamsaraClient:
         """
         return self._get_all("/fleet/driver-vehicle-assignments", params={"filterBy": "vehicles"})
 
+    def get_hos_clocks(self) -> list[dict]:
+        """Hours-of-Service clocks per driver: duty status + remaining drive/
+        shift/cycle time + violations (requires the ELD read token scope)."""
+        return self._get_all("/fleet/hos/clocks")
+
     def get_vehicle_gps_history(self, vehicle_id: str, start_iso: str, end_iso: str) -> list[dict]:
         """Time-ordered GPS points for one vehicle over a window — the driven route.
 

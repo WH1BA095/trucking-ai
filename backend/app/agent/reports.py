@@ -46,12 +46,13 @@ def _complete(system: str, user: str, max_tokens: int = 900) -> str:
     return "".join(b.text for b in resp.content if b.type == "text")
 
 
-def generate_report(db: Session, vehicle: Vehicle) -> TruckReport:
+def generate_report(db: Session, vehicle: Vehicle, user_id: str | None = None) -> TruckReport:
     snapshot = _vehicle_snapshot(db, vehicle)
     content_en = _complete(REPORT_SYSTEM, f"Truck data:\n{json.dumps(snapshot, ensure_ascii=False)}")
     content_ru = _complete(TRANSLATE_SYSTEM, content_en)
 
     report = TruckReport(
+        user_id=user_id,
         vehicle_id=vehicle.id,
         vehicle_name=vehicle.name,
         title=f"Status report — Truck {vehicle.name}",

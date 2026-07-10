@@ -99,22 +99,22 @@ def get_vehicle_details(db: Session, vehicle_name_or_id: str) -> dict:
     return _vehicle_snapshot(db, vehicle)
 
 
-def generate_truck_report(db: Session, vehicle_name_or_id: str) -> dict:
+def generate_truck_report(db: Session, vehicle_name_or_id: str, user_id: str | None = None) -> dict:
     vehicle = _find_vehicle(db, vehicle_name_or_id)
     if not vehicle:
         return {"error": f"No vehicle found matching '{vehicle_name_or_id}'"}
     # Local import avoids a circular import (reports.py imports from this module).
     from app.agent.reports import generate_report
 
-    report = generate_report(db, vehicle)
+    report = generate_report(db, vehicle, user_id)
     return {"saved": True, "report_id": report.id, "vehicle": vehicle.name}
 
 
-def execute_tool(db: Session, name: str, tool_input: dict) -> dict:
+def execute_tool(db: Session, name: str, tool_input: dict, user_id: str | None = None) -> dict:
     if name == "get_fleet_summary":
         return get_fleet_summary(db)
     if name == "get_vehicle_details":
         return get_vehicle_details(db, tool_input["vehicle_name_or_id"])
     if name == "generate_truck_report":
-        return generate_truck_report(db, tool_input["vehicle_name_or_id"])
+        return generate_truck_report(db, tool_input["vehicle_name_or_id"], user_id)
     return {"error": f"Unknown tool: {name}"}

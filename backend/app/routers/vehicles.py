@@ -7,8 +7,9 @@ from app.database import get_db
 from app.models import Vehicle
 from app.schemas import VehicleOut
 from app.samsara_client import samsara_client
+from app.auth import get_current_user
 
-router = APIRouter(prefix="/vehicles", tags=["vehicles"])
+router = APIRouter(prefix="/vehicles", tags=["vehicles"], dependencies=[Depends(get_current_user)])
 
 MAX_ROUTE_POINTS = 400  # downsample dense GPS feeds so the map stays snappy
 

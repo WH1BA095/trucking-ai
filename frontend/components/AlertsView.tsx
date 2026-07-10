@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { fetchAlerts, Alert, ALERT_META, FaultCode } from "../lib/api";
 import { useLang } from "../lib/i18n";
+import { Icon, Dot } from "./icons";
 
 function FaultLine({ f }: { f: FaultCode }) {
   const sevColor = f.severity === "high" ? "var(--fault-title)" : f.severity === "medium" ? "#d97706" : "var(--muted)";
@@ -35,7 +36,7 @@ export default function AlertsView({ onSelectTruck }: { onSelectTruck: (id: stri
   if (alerts.length === 0) {
     return (
       <div style={{ padding: 40, textAlign: "center", color: "var(--muted)", maxWidth: 420, margin: "40px auto" }}>
-        <div style={{ fontSize: 40 }}>✅</div>
+        <Icon name="check" size={40} color="#16a34a" />
         <div style={{ fontSize: 16, fontWeight: 600, color: "var(--text)", marginTop: 8 }}>{t("alerts.noneTitle")}</div>
         <div style={{ fontSize: 14, marginTop: 6 }}>{t("alerts.noneHint")}</div>
       </div>
@@ -49,11 +50,8 @@ export default function AlertsView({ onSelectTruck }: { onSelectTruck: (id: stri
         const faults = Array.isArray(a.fault_codes) ? a.fault_codes : [];
         const urgent = a.drivable && a.max_severity === "high";
         const verdictColor = !a.drivable ? "var(--fault-title)" : urgent ? "#d97706" : "#16a34a";
-        const verdictText = !a.drivable
-          ? `🔴 ${t("alerts.notDrivable")}`
-          : urgent
-          ? `🟠 ${t("alerts.drivableUrgent")}`
-          : `🟢 ${t("alerts.drivable")}`;
+        const verdictDot = !a.drivable ? "#dc2626" : urgent ? "#d97706" : "#16a34a";
+        const verdictLabel = !a.drivable ? t("alerts.notDrivable") : urgent ? t("alerts.drivableUrgent") : t("alerts.drivable");
         const sevColor = a.max_severity === "high" ? "#dc2626" : a.max_severity === "medium" ? "#d97706" : "#6b7280";
         return (
           <div
@@ -77,12 +75,12 @@ export default function AlertsView({ onSelectTruck }: { onSelectTruck: (id: stri
                   </span>
                 )}
               </div>
-              <span style={{ fontSize: 13, fontWeight: 600, color: verdictColor }}>
-                {verdictText}
+              <span style={{ fontSize: 13, fontWeight: 600, color: verdictColor, display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <Dot color={verdictDot} /> {verdictLabel}
               </span>
             </div>
 
-            {a.location && <div style={{ fontSize: 13, color: "var(--muted)", marginTop: 6 }}>📍 {a.location}</div>}
+            {a.location && <div style={{ fontSize: 13, color: "var(--muted)", marginTop: 6, display: "flex", alignItems: "center", gap: 6 }}><Icon name="pin" size={13} /> {a.location}</div>}
             {a.driver_name && <div style={{ fontSize: 13, color: "var(--muted)", marginTop: 2 }}>{t("detail.driver")}: {a.driver_name}</div>}
 
             <div style={{ marginTop: 10, fontSize: 12, fontWeight: 600, color: "var(--text)" }}>

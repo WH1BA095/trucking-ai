@@ -6,6 +6,7 @@ import remarkGfm from "remark-gfm";
 import { fetchReports, generateAllReports, Report, Vehicle } from "../lib/api";
 import { useLang } from "../lib/i18n";
 import { useSettings } from "../lib/settings";
+import { Icon } from "./icons";
 import TruckDetail from "./TruckDetail";
 
 function deltaLine(cur: Report, prev: Report | undefined, noChange: string): string | null {
@@ -52,7 +53,7 @@ export default function ReportsView({ vehicles }: { vehicles: Vehicle[] }) {
 
   async function generateAll() {
     if (generating) return;
-    if (!confirm(`${t("reports.generateAll").replace("🔄 ", "")} — ${vehicles.length}?`)) return;
+    if (!confirm(`${t("reports.generateAll")} — ${vehicles.length}?`)) return;
     try {
       const { count } = await generateAllReports();
       setGenerating(true);
@@ -110,7 +111,7 @@ export default function ReportsView({ vehicles }: { vehicles: Vehicle[] }) {
           disabled={generating}
           style={{ padding: "8px 14px", background: generating ? "var(--muted)" : "#1F4E79", color: "#fff", border: "none", borderRadius: 8, fontWeight: 600, fontSize: 13, cursor: generating ? "default" : "pointer" }}
         >
-          {generating ? t("reports.generatingAll") : t("reports.generateAll")}
+          {generating ? t("reports.generatingAll") : <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><Icon name="refresh" size={14} /> {t("reports.generateAll")}</span>}
         </button>
       </div>
 
@@ -118,7 +119,7 @@ export default function ReportsView({ vehicles }: { vehicles: Vehicle[] }) {
         <div style={{ padding: 24, color: "var(--muted)" }}>{t("reports.loading")}</div>
       ) : groups.length === 0 ? (
         <div style={{ padding: 40, textAlign: "center", color: "var(--muted)", maxWidth: 460, margin: "40px auto" }}>
-          <div style={{ fontSize: 40 }}>📋</div>
+          <Icon name="report" size={40} color="var(--muted)" />
           <div style={{ fontSize: 16, fontWeight: 600, color: "var(--text)", marginTop: 8 }}>{t("reports.noReportsTitle")}</div>
           <div style={{ fontSize: 14, marginTop: 6 }}>{t("reports.noReportsHint")}</div>
         </div>
