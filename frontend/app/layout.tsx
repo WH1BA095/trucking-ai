@@ -9,6 +9,12 @@ export const metadata = {
   title: "Fleet AI Dashboard",
 };
 
+// Render at device width on phones (and allow pinch-zoom for accessibility).
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+};
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">

@@ -6,6 +6,7 @@ import { fetchVehicles, fetchRoute, Vehicle, STATUS_META, hasAlert } from "../li
 import { useLang } from "../lib/i18n";
 import { useSettings } from "../lib/settings";
 import { useAuth } from "../lib/auth";
+import { useIsMobile } from "../lib/useIsMobile";
 import TruckDetail from "../components/TruckDetail";
 import ChatWidget from "../components/ChatWidget";
 import ReportsView from "../components/ReportsView";
@@ -73,6 +74,8 @@ export default function Home() {
   const [tab, setTab] = useState<Tab>("map");
   const [filter, setFilter] = useState<string | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false); // mobile: chat is a full-screen overlay
+  const isMobile = useIsMobile();
 
   const allowedTabs = ALL_TABS.filter((tb) => hasPerm(TAB_PERM[tb]));
 
@@ -117,6 +120,70 @@ export default function Home() {
     ? vehicles.filter(hasAlert)
     : vehicles.filter((v) => v.status === filter);
   const chatWidth = tab === "alerts" ? 520 : tab === "map" && !selected ? 560 : 360;
+
+  const mainContent =
+    tab === "map" ? (
+      <TruckMap vehicles={shown} selectedId={selected?.id ?? null} route={route} onSelect={setSelected} />
+    ) : tab === "reports" ? (
+      <ReportsView vehicles={vehicles} />
+    ) : (
+      <AlertsView onSelectTruck={(id) => { const v = vehicles.find((x) => x.id === id); if (v) { setSelected(v); setTab("map"); } }} />
+    );
+
+  // --- Phone layout: single column, chat + truck detail as full-screen overlays ---
+  if (isMobile) {
+    if (profileOpen) {
+      return <div style={{ height: "100%", background: "var(--bg)" }}><ProfileView onClose={() => setProfileOpen(false)} /></div>;
+    }
+    return (
+      <div style={{ display: "flex", flexDirection: "column", height: "100%", background: "var(--bg)", position: "relative" }}>
+        <header style={{ background: "#1F4E79", color: "#fff", flexShrink: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "0 12px", height: 48 }}>
+            <div style={{ fontWeight: 700, fontSize: 15, display: "flex", alignItems: "center", gap: 6 }}><Icon name="truck" size={18} /> Fleet AI</div>
+            <div style={{ flex: 1 }} />
+            <ConnStatus />
+            <button onClick={() => setProfileOpen(true)} title={t("profile.title")} style={{ display: "flex", alignItems: "center", background: "rgba(255,255,255,.15)", border: "1px solid rgba(255,255,255,.4)", borderRadius: "50%", padding: 3, color: "#fff", cursor: "pointer" }}>
+              <span style={{ width: 26, height: 26, borderRadius: "50%", background: "rgba(255,255,255,.25)", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                {user.avatar ? <img src={user.avatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <Icon name="user" size={15} />}
+              </span>
+            </button>
+            <button onClick={logout} title={t("auth.logout")} style={{ ...ctrlBtn, display: "flex", alignItems: "center", padding: 7 }}><Icon name="logout" size={15} /></button>
+          </div>
+          <div style={{ display: "flex", gap: 4, padding: "0 8px 8px", overflowX: "auto" }}>
+            {allowedTabs.map((tb) => (
+              <TabButton key={tb} active={tab === tb} onClick={() => setTab(tb)}>{t(`tab.${tb}`)}</TabButton>
+            ))}
+          </div>
+        </header>
+
+        <div style={{ flex: 1, minHeight: 0 }}>{mainContent}</div>
+
+        {/* Truck detail as a full-screen overlay */}
+        {tab === "map" && selected && (
+          <div style={{ position: "fixed", inset: 0, zIndex: 1000, background: "var(--panel)" }}>
+            <TruckDetail vehicle={selected} onReportCreated={() => { setSelected(null); setTab("reports"); }} onClose={() => setSelected(null)} />
+          </div>
+        )}
+
+        {/* Chat: floating button → full-screen overlay */}
+        {!chatOpen && (
+          <button onClick={() => setChatOpen(true)} aria-label={t("chat.title")}
+            style={{ position: "fixed", right: 16, bottom: 16, zIndex: 900, width: 52, height: 52, borderRadius: "50%", background: "#1F4E79", color: "#fff", border: "none", boxShadow: "0 4px 14px rgba(0,0,0,.35)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+            <Icon name="chat" size={22} />
+          </button>
+        )}
+        {chatOpen && (
+          <div style={{ position: "fixed", inset: 0, zIndex: 1100, background: "var(--panel)", display: "flex", flexDirection: "column" }}>
+            <button onClick={() => setChatOpen(false)} aria-label="Close"
+              style={{ position: "absolute", top: 10, right: 12, zIndex: 2, background: "var(--panel2)", border: "1px solid var(--border)", borderRadius: 8, padding: 6, color: "var(--text)", cursor: "pointer", display: "flex" }}>
+              <Icon name="close" size={18} />
+            </button>
+            <div style={{ flex: 1, minHeight: 0 }}><ChatWidget /></div>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", background: "var(--bg)" }}>

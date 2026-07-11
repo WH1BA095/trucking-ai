@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { MOBILE_BREAKPOINT } from "../lib/useIsMobile";
 
 /**
  * Fluid, whole-UI scaling.
@@ -35,6 +36,12 @@ export default function ScaleRoot({ children }: { children: React.ReactNode }) {
       const el = document.documentElement;
       const w = el.clientWidth;   // viewport minus any scrollbar
       const h = el.clientHeight;
+      // On phones the app uses a dedicated mobile layout — don't up-scale a
+      // desktop canvas onto a narrow screen. Just fill the viewport 1:1.
+      if (w <= MOBILE_BREAKPOINT) {
+        setStyle({ width: "100%", height: "100dvh", overflow: "hidden" });
+        return;
+      }
       // Fit both dimensions so nothing gets clipped on wide-but-short screens.
       const scale = clamp(Math.min(w / BASE_W, h / BASE_H), MIN_SCALE, MAX_SCALE);
       setStyle({
