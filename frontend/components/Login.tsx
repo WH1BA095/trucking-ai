@@ -32,7 +32,7 @@ export default function Login() {
   };
 
   return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: "var(--bg)" }}>
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", background: "var(--bg)" }}>
       <form onSubmit={submit} style={{ width: 340, background: "var(--panel)", border: "1px solid var(--border)", borderRadius: 14, padding: 28, boxShadow: "0 10px 40px rgba(0,0,0,.15)" }}>
         <div style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", marginBottom: 4, display: "flex", alignItems: "center", gap: 10 }}><Icon name="truck" size={24} /> Fleet AI Dashboard</div>
         <div style={{ fontSize: 14, color: "var(--muted)", marginBottom: 20 }}>Sign in</div>

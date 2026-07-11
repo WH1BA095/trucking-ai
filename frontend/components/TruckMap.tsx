@@ -21,6 +21,8 @@ function truckIcon(v: Vehicle, selected: boolean, alert: boolean) {
   const badge = alert
     ? `<div style="position:absolute;top:-5px;right:-5px;width:16px;height:16px;border-radius:50%;background:#dc2626;color:#fff;border:2px solid #fff;display:flex;align-items:center;justify-content:center;font:800 11px system-ui;line-height:1;">!</div>`
     : "";
+  // Number label sits below the circle and on top (z-index) so it isn't hidden
+  // behind the icon or a neighbouring marker.
   return L.divIcon({
     className: "",
     html: `<div style="display:flex;flex-direction:column;align-items:center;">
@@ -36,14 +38,16 @@ function truckIcon(v: Vehicle, selected: boolean, alert: boolean) {
         ${badge}
       </div>
       <span style="
-        margin-top:-4px;
+        position:relative;z-index:1000;
+        margin-top:2px;
         background:#fff;color:#111827;
         font:600 9px system-ui;
         padding:0 4px;border-radius:4px;
         box-shadow:0 1px 2px rgba(0,0,0,.3);
+        white-space:nowrap;
       ">${v.name}</span>
     </div>`,
-    iconSize: [34, 42],
+    iconSize: [34, 44],
     iconAnchor: [17, 16],
     popupAnchor: [0, -18],
   });

@@ -10,8 +10,6 @@ import TruckDetail from "../components/TruckDetail";
 import ChatWidget from "../components/ChatWidget";
 import ReportsView from "../components/ReportsView";
 import AlertsView from "../components/AlertsView";
-import AdminView from "../components/AdminView";
-import SystemView from "../components/SystemView";
 import ProfileView from "../components/ProfileView";
 import Login from "../components/Login";
 import ConnStatus from "../components/ConnStatus";
@@ -20,9 +18,12 @@ import { Icon } from "../components/icons";
 // Leaflet touches `window`, so it must be loaded client-side only.
 const TruckMap = dynamic(() => import("../components/TruckMap"), { ssr: false });
 
-type Tab = "map" | "reports" | "alerts" | "admin" | "system";
-const TAB_PERM: Record<Tab, string> = { map: "view_map", reports: "view_reports", alerts: "view_alerts", admin: "view_db", system: "view_logs" };
-const ALL_TABS: Tab[] = ["map", "reports", "alerts", "admin", "system"];
+// Note: the DB viewer and the system journal (Logs / Tests) are intentionally
+// NOT top-nav tabs — they live inside the profile/account view so they're out
+// of sight for casual use.
+type Tab = "map" | "reports" | "alerts";
+const TAB_PERM: Record<Tab, string> = { map: "view_map", reports: "view_reports", alerts: "view_alerts" };
+const ALL_TABS: Tab[] = ["map", "reports", "alerts"];
 
 function Metric({ label, value, color, active, onClick }: { label: string; value: number; color: string; active: boolean; onClick: () => void }) {
   return (
@@ -105,7 +106,7 @@ export default function Home() {
     return () => clearInterval(interval);
   }, [user]);
 
-  if (loading) return <div style={{ height: "100vh", background: "var(--bg)" }} />;
+  if (loading) return <div style={{ height: "100%", background: "var(--bg)" }} />;
   if (!user) return <Login />;
 
   const count = (s: string) => vehicles.filter((v) => v.status === s).length;
@@ -118,7 +119,7 @@ export default function Home() {
   const chatWidth = tab === "alerts" ? 520 : tab === "map" && !selected ? 560 : 360;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100vh", background: "var(--bg)" }}>
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", background: "var(--bg)" }}>
       <header style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 16px", height: 56, background: "#1F4E79", color: "#fff", flexShrink: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
           <div style={{ fontWeight: 700, fontSize: 16, display: "flex", alignItems: "center", gap: 8 }}><Icon name="truck" size={18} /> {t("app.title")}</div>
@@ -172,21 +173,15 @@ export default function Home() {
                 </>
               ) : tab === "reports" ? (
                 <div style={{ flex: 1, minWidth: 0, background: "var(--bg)" }}><ReportsView vehicles={vehicles} /></div>
-              ) : tab === "alerts" ? (
+              ) : (
                 <div style={{ flex: 1, minWidth: 0, background: "var(--bg)" }}>
                   <AlertsView onSelectTruck={(id) => { const v = vehicles.find((x) => x.id === id); if (v) { setSelected(v); setTab("map"); } }} />
                 </div>
-              ) : tab === "system" ? (
-                <div style={{ flex: 1, minWidth: 0, background: "var(--bg)" }}><SystemView /></div>
-              ) : (
-                <div style={{ flex: 1, minWidth: 0, background: "var(--bg)" }}><AdminView /></div>
               )}
             </div>
-            {tab !== "admin" && tab !== "system" && (
-              <div style={{ width: chatWidth, background: "var(--panel)", borderLeft: "1px solid var(--border)", flexShrink: 0, transition: "width .25s ease" }}>
-                <ChatWidget />
-              </div>
-            )}
+            <div style={{ width: chatWidth, background: "var(--panel)", borderLeft: "1px solid var(--border)", flexShrink: 0, transition: "width .25s ease" }}>
+              <ChatWidget />
+            </div>
           </>
         )}
       </div>

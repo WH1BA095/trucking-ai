@@ -3,6 +3,7 @@ import { LangProvider } from "../lib/i18n";
 import { ThemeProvider } from "../lib/theme";
 import { SettingsProvider } from "../lib/settings";
 import { AuthProvider } from "../lib/auth";
+import ScaleRoot from "../components/ScaleRoot";
 
 export const metadata = {
   title: "Fleet AI Dashboard",
@@ -15,7 +16,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ThemeProvider>
           <LangProvider>
             <SettingsProvider>
-              <AuthProvider>{children}</AuthProvider>
+              <AuthProvider>
+                <ScaleRoot>{children}</ScaleRoot>
+              </AuthProvider>
             </SettingsProvider>
           </LangProvider>
         </ThemeProvider>

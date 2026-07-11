@@ -41,7 +41,15 @@
   --chip-text: #c7d2fe;
 }
 
+html, body {
+  height: 100%;
+}
+
 body {
   background: var(--bg);
   color: var(--text);
+  /* The app is a full-height layout with its own internal scroll areas; the
+     body itself never scrolls. Hiding overflow keeps the scaling wrapper from
+     producing a stray 1px scrollbar. */
+  overflow: hidden;
 }

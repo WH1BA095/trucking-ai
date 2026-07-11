@@ -11,7 +11,6 @@ const DICT: Record<string, { en: string; ru: string }> = {
   "tab.reports": { en: "Reports", ru: "Отчёты" },
   "tab.alerts": { en: "Alerts", ru: "Оповещения" },
   "tab.admin": { en: "DB", ru: "База" },
-  "tab.system": { en: "System", ru: "Журнал" },
 
   "admin.tables": { en: "Tables", ru: "Таблицы" },
   "admin.loading": { en: "Loading…", ru: "Загрузка…" },
@@ -146,6 +145,9 @@ const DICT: Record<string, { en: string; ru: string }> = {
   "alerts.level.warning": { en: "Warning", ru: "Предупреждение" },
   "alerts.level.emissions": { en: "Emissions", ru: "Выбросы" },
 
+  "db.menuHint": { en: "Read-only database viewer (all tables).", ru: "Просмотр базы данных (только чтение, все таблицы)." },
+  "log.menuHint": { en: "System self-tests and runtime error journal.", ru: "Самотесты системы и журнал ошибок." },
+  "log.menuOpen": { en: "Open", ru: "Открыть" },
   "log.title": { en: "System journal", ru: "Системный журнал" },
   "log.runSelfTest": { en: "Run self-test now", ru: "Запустить самотест" },
   "log.running": { en: "Running self-test…", ru: "Выполняю самотест…" },

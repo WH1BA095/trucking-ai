@@ -9,6 +9,8 @@ import {
   User, updateMe, fetchUsers, createUser, updateUser, deleteUser, fetchPermissions,
 } from "../lib/api";
 import { Icon } from "./icons";
+import SystemView from "./SystemView";
+import AdminView from "./AdminView";
 
 const ROLES = ["admin", "moderator"];
 
@@ -72,6 +74,12 @@ export default function ProfileView({ onClose }: { onClose: () => void }) {
   const { theme, toggle } = useTheme();
   const { timeZone, setTimeZone, hour12, setHour12 } = useSettings();
   const setTheme = (v: string) => { if (v !== theme) toggle(); };
+
+  // The DB viewer and the system journal (Logs / Tests) live here, tucked away
+  // from the main nav. `sub` selects which full-screen tool is open, if any.
+  const canViewLogs = hasPerm("view_logs");
+  const canViewDb = hasPerm("view_db");
+  const [sub, setSub] = useState<null | "logs" | "db">(null);
 
   // --- my profile ---
   const [username, setUsername] = useState(user?.username ?? "");
@@ -137,6 +145,21 @@ export default function ProfileView({ onClose }: { onClose: () => void }) {
     setUsers((us) => us.map((u) => (u.id === id ? { ...u, ...patch } : u)));
   }
 
+  // Full-screen tools (DB viewer / system journal) reached from the cards below.
+  const activeSub = (sub === "logs" && canViewLogs) || (sub === "db" && canViewDb) ? sub : null;
+  if (activeSub) {
+    return (
+      <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
+        <div style={{ padding: "12px 24px", borderBottom: "1px solid var(--border)", flexShrink: 0 }}>
+          <button onClick={() => setSub(null)} style={{ background: "transparent", border: "none", color: "var(--muted)", cursor: "pointer", fontSize: 14 }}>
+            ← {t("profile.title")}
+          </button>
+        </div>
+        <div style={{ flex: 1, minHeight: 0 }}>{activeSub === "logs" ? <SystemView /> : <AdminView />}</div>
+      </div>
+    );
+  }
+
   return (
     <div style={{ height: "100%", overflowY: "auto", padding: 24, boxSizing: "border-box" }}>
       <div style={{ maxWidth: 800, margin: "0 auto" }}>
@@ -194,6 +217,24 @@ export default function ProfileView({ onClose }: { onClose: () => void }) {
             </div>
           </div>
         </Card>
+
+        {canViewDb && (
+          <Card title={t("tab.admin")}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+              <span style={{ fontSize: 13, color: "var(--muted)" }}>{t("db.menuHint")}</span>
+              <button onClick={() => setSub("db")} style={btn("#1F4E79")}>{t("log.menuOpen")}</button>
+            </div>
+          </Card>
+        )}
+
+        {canViewLogs && (
+          <Card title="Logs / Tests">
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+              <span style={{ fontSize: 13, color: "var(--muted)" }}>{t("log.menuHint")}</span>
+              <button onClick={() => setSub("logs")} style={btn("#1F4E79")}>{t("log.menuOpen")}</button>
+            </div>
+          </Card>
+        )}
 
         {canManage && (
           <Card title={t("users.create")}>
