@@ -96,6 +96,18 @@ class UserUpdate(BaseModel):
     permissions: Optional[list[str]] = None
 
 
+class SystemLogOut(BaseModel):
+    id: str
+    kind: str
+    level: str
+    component: Optional[str] = None
+    message: str
+    details: Optional[Any] = None
+    created_at: Optional[datetime] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class ChatRequest(BaseModel):
     message: str = Field(min_length=1, max_length=4000)
 

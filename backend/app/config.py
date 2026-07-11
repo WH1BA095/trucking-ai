@@ -45,6 +45,12 @@ class Settings(BaseSettings):
     sync_interval_seconds: int = 300
     allowed_origins: str = "http://localhost:3000"
 
+    # Daily self-test (writes a health-check row per component to system_logs).
+    # Runs once a day at this hour, in this timezone — pick something just before
+    # the workday starts so the owner sees a fresh "all good" each morning.
+    selftest_hour: int = 7
+    selftest_timezone: str = "America/Chicago"
+
     # Auth. CHANGE jwt_secret in production (any long random string in .env).
     jwt_secret: str = "dev-secret-change-me"
     jwt_expire_hours: int = 168  # session remembered for a week

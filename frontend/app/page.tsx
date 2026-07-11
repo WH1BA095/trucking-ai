@@ -11,16 +11,18 @@ import ChatWidget from "../components/ChatWidget";
 import ReportsView from "../components/ReportsView";
 import AlertsView from "../components/AlertsView";
 import AdminView from "../components/AdminView";
+import SystemView from "../components/SystemView";
 import ProfileView from "../components/ProfileView";
 import Login from "../components/Login";
+import ConnStatus from "../components/ConnStatus";
 import { Icon } from "../components/icons";
 
 // Leaflet touches `window`, so it must be loaded client-side only.
 const TruckMap = dynamic(() => import("../components/TruckMap"), { ssr: false });
 
-type Tab = "map" | "reports" | "alerts" | "admin";
-const TAB_PERM: Record<Tab, string> = { map: "view_map", reports: "view_reports", alerts: "view_alerts", admin: "view_db" };
-const ALL_TABS: Tab[] = ["map", "reports", "alerts", "admin"];
+type Tab = "map" | "reports" | "alerts" | "admin" | "system";
+const TAB_PERM: Record<Tab, string> = { map: "view_map", reports: "view_reports", alerts: "view_alerts", admin: "view_db", system: "view_logs" };
+const ALL_TABS: Tab[] = ["map", "reports", "alerts", "admin", "system"];
 
 function Metric({ label, value, color, active, onClick }: { label: string; value: number; color: string; active: boolean; onClick: () => void }) {
   return (
@@ -126,6 +128,7 @@ export default function Home() {
             ))}
           </div>
           <Clock />
+          <ConnStatus />
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           {!profileOpen && tab === "map" && (
@@ -173,11 +176,13 @@ export default function Home() {
                 <div style={{ flex: 1, minWidth: 0, background: "var(--bg)" }}>
                   <AlertsView onSelectTruck={(id) => { const v = vehicles.find((x) => x.id === id); if (v) { setSelected(v); setTab("map"); } }} />
                 </div>
+              ) : tab === "system" ? (
+                <div style={{ flex: 1, minWidth: 0, background: "var(--bg)" }}><SystemView /></div>
               ) : (
                 <div style={{ flex: 1, minWidth: 0, background: "var(--bg)" }}><AdminView /></div>
               )}
             </div>
-            {tab !== "admin" && (
+            {tab !== "admin" && tab !== "system" && (
               <div style={{ width: chatWidth, background: "var(--panel)", borderLeft: "1px solid var(--border)", flexShrink: 0, transition: "width .25s ease" }}>
                 <ChatWidget />
               </div>

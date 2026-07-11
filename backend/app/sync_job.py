@@ -19,6 +19,7 @@ from app.database import SessionLocal
 from app.models import Vehicle, VehicleEvent
 from app.notifications import notify_admin_critical
 from app.samsara_client import samsara_client
+from app.selftest import record_exception, run_self_test
 
 logger = logging.getLogger("sync_job")
 
@@ -266,9 +267,11 @@ def sync_vehicles_once():
 
         db.commit()
         logger.info("Synced %d vehicles from Samsara", len(vehicles))
-    except Exception:
+    except Exception as exc:
         logger.exception("Samsara sync failed")
         db.rollback()
+        # Surface the failure in the owner's health journal, not just the log file.
+        record_exception("sync_job", exc)
     finally:
         db.close()
 
@@ -278,6 +281,13 @@ scheduler = BackgroundScheduler()
 
 def start_scheduler():
     scheduler.add_job(sync_vehicles_once, "interval", seconds=settings.sync_interval_seconds, id="samsara_sync")
+    # Daily health self-test before the workday (own timezone), so the owner has
+    # a fresh "all systems OK" (or a warning) waiting each morning.
+    scheduler.add_job(
+        run_self_test, "cron",
+        hour=settings.selftest_hour, minute=0,
+        timezone=settings.selftest_timezone, id="daily_selftest",
+    )
     scheduler.start()
     # Run once immediately on startup instead of waiting for the first interval.
     sync_vehicles_once()

@@ -93,3 +93,24 @@ class ChatMessage(Base):
     role = Column(String, nullable=False)  # "user" | "assistant"
     content = Column(Text, nullable=False)
     created_at = Column(DateTime, default=utcnow)
+
+
+class SystemLog(Base):
+    """Health journal for the owner — proof the system is alive and working.
+
+    Two deliberately separate kinds so they never get confused:
+      - "scheduled_test": a row per component from the daily (or on-demand)
+        self-test — DB, Samsara, Anthropic, sync freshness, data counts.
+      - "runtime_error":  an unhandled exception caught by the app (request
+        handler or the background sync job).
+    `level` colors the row in the UI: ok / warning / error.
+    """
+    __tablename__ = "system_logs"
+
+    id = Column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
+    kind = Column(String, nullable=False, index=True)   # "scheduled_test" | "runtime_error"
+    level = Column(String, nullable=False)              # "ok" | "warning" | "error"
+    component = Column(String, nullable=True)           # "database", "samsara", "sync_job", ...
+    message = Column(Text, nullable=False)
+    details = Column(JSON, nullable=True)               # component-specific extras (counts, traceback)
+    created_at = Column(DateTime, default=utcnow, index=True)

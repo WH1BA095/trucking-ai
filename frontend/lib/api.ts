@@ -136,6 +136,22 @@ export type Report = {
   created_at: string | null;
 };
 
+export type SystemLog = {
+  id: string;
+  kind: "scheduled_test" | "runtime_error";
+  level: "ok" | "warning" | "error";
+  component: string | null;
+  message: string;
+  details: any;
+  created_at: string | null;
+};
+
+export const LOG_LEVEL_META: Record<string, { color: string; bg: string }> = {
+  ok: { color: "#16a34a", bg: "#f0fdf4" },
+  warning: { color: "#d97706", bg: "#fffbeb" },
+  error: { color: "#dc2626", bg: "#fef2f2" },
+};
+
 export type TableInfo = { name: string; rows: number };
 export type TableData = {
   table: string;
@@ -223,6 +239,29 @@ export async function fetchTables(): Promise<TableInfo[]> {
 export async function fetchTableRows(table: string, limit = 100, offset = 0): Promise<TableData> {
   return apiFetch(`/admin/tables/${table}?limit=${limit}&offset=${offset}`);
 }
+export async function fetchSystemLogs(kind?: "scheduled_test" | "runtime_error"): Promise<SystemLog[]> {
+  return apiFetch(`/system/logs${kind ? `?kind=${kind}` : ""}`);
+}
+export async function runSelfTest(): Promise<SystemLog[]> {
+  return apiFetch("/system/selftest", { method: "POST" });
+}
+export async function clearSystemLogs(kind?: "scheduled_test" | "runtime_error"): Promise<{ deleted: number }> {
+  return apiFetch(`/system/logs${kind ? `?kind=${kind}` : ""}`, { method: "DELETE" });
+}
+
+// Unauthenticated liveness ping for the connection indicator. Returns round-trip
+// latency in ms, or null if the request failed (no connection).
+export async function pingHealth(): Promise<number | null> {
+  const start = performance.now();
+  try {
+    const res = await fetch(`${API_URL}/health`, { cache: "no-store" });
+    if (!res.ok) return null;
+    return performance.now() - start;
+  } catch {
+    return null;
+  }
+}
+
 export async function fetchChatHistory(): Promise<{ role: "user" | "assistant"; text: string }[]> {
   return apiFetch("/chat/history");
 }

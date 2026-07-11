@@ -11,6 +11,7 @@ const DICT: Record<string, { en: string; ru: string }> = {
   "tab.reports": { en: "Reports", ru: "Отчёты" },
   "tab.alerts": { en: "Alerts", ru: "Оповещения" },
   "tab.admin": { en: "DB", ru: "База" },
+  "tab.system": { en: "System", ru: "Журнал" },
 
   "admin.tables": { en: "Tables", ru: "Таблицы" },
   "admin.loading": { en: "Loading…", ru: "Загрузка…" },
@@ -58,6 +59,7 @@ const DICT: Record<string, { en: string; ru: string }> = {
   "perm.generate_reports": { en: "Generate reports", ru: "Создание отчётов" },
   "perm.view_alerts": { en: "View alerts", ru: "Просмотр оповещений" },
   "perm.view_db": { en: "View database", ru: "Просмотр базы" },
+  "perm.view_logs": { en: "View system journal", ru: "Просмотр журнала" },
   "perm.manage_users": { en: "Manage users", ru: "Управление юзерами" },
 
   "metric.total": { en: "Total", ru: "Всего" },
@@ -143,6 +145,25 @@ const DICT: Record<string, { en: string; ru: string }> = {
   "alerts.level.critical": { en: "Critical", ru: "Критично" },
   "alerts.level.warning": { en: "Warning", ru: "Предупреждение" },
   "alerts.level.emissions": { en: "Emissions", ru: "Выбросы" },
+
+  "log.title": { en: "System journal", ru: "Системный журнал" },
+  "log.runSelfTest": { en: "Run self-test now", ru: "Запустить самотест" },
+  "log.running": { en: "Running self-test…", ru: "Выполняю самотест…" },
+  "log.clear": { en: "Clear journal", ru: "Очистить журнал" },
+  "log.clearConfirm": { en: "Clear the whole system journal? This cannot be undone.", ru: "Очистить весь журнал? Это действие необратимо." },
+  "log.loading": { en: "Loading journal…", ru: "Загрузка журнала…" },
+  "log.scheduled": { en: "Self-tests", ru: "Самотесты" },
+  "log.runtime": { en: "Runtime errors", ru: "Ошибки во время работы" },
+  "log.noScheduled": { en: "No self-test results yet — run one above.", ru: "Результатов самотеста пока нет — запустите его сверху." },
+  "log.noRuntime": { en: "No runtime errors recorded — all clear.", ru: "Ошибок не зафиксировано — всё чисто." },
+  "log.level.ok": { en: "OK", ru: "ОК" },
+  "log.level.warning": { en: "Warning", ru: "Внимание" },
+  "log.level.error": { en: "Error", ru: "Ошибка" },
+
+  "conn.good": { en: "Good connection", ru: "Хорошая связь" },
+  "conn.fair": { en: "Fair connection", ru: "Средняя связь" },
+  "conn.poor": { en: "Poor connection", ru: "Слабая связь" },
+  "conn.none": { en: "No connection", ru: "Нет связи" },
 };
 
 type Ctx = { lang: Lang; setLang: (l: Lang) => void; t: (key: string) => string };

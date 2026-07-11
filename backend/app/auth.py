@@ -30,6 +30,7 @@ PERMISSIONS = [
     "generate_reports",
     "view_alerts",
     "view_db",
+    "view_logs",
     "manage_users",
 ]
 ROLES = {"admin", "moderator"}

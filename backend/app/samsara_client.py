@@ -46,6 +46,15 @@ class SamsaraClient:
             else:
                 return results
 
+    def ping(self) -> int:
+        """Cheap reachability + auth check for the self-test.
+
+        Fetches a single vehicle (no telemetry) and returns how many came back.
+        Raises on network/HTTP errors so the caller can record the failure.
+        """
+        data = self._get("/fleet/vehicles", params={"limit": 1})
+        return len(data.get("data", []))
+
     def list_vehicles(self) -> list[dict]:
         """Vehicle roster: id, name, make/model, license plate. No live telemetry here."""
         return self._get_all("/fleet/vehicles")
