@@ -51,6 +51,11 @@ class Settings(BaseSettings):
     selftest_hour: int = 7
     selftest_timezone: str = "America/Chicago"
 
+    # Tank capacity (gallons) used to convert the reported fuel level % into
+    # gallons remaining. Trucks only report the % (if at all); set this to the
+    # fleet's real tank size for an accurate remaining-gallons figure.
+    fuel_tank_gallons: int = 200
+
     # Auth. CHANGE jwt_secret in production (any long random string in .env).
     jwt_secret: str = "dev-secret-change-me"
     jwt_expire_hours: int = 168  # session remembered for a week

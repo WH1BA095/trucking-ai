@@ -65,7 +65,7 @@ class SamsaraClient:
     STAT_TYPES = [
         "gps", "engineStates", "faultCodes", "obdOdometerMeters", "obdEngineSeconds",
         "defLevelMilliPercent", "engineCoolantTemperatureMilliC", "batteryMilliVolts",
-        "ambientAirTemperatureMilliC", "engineRpm", "engineLoadPercent",
+        "ambientAirTemperatureMilliC", "engineRpm", "engineLoadPercent", "fuelPercents",
     ]
     STATS_TYPES_PER_CALL = 3  # Samsara rejects requesting too many stat types at once
 
@@ -114,6 +114,25 @@ class SamsaraClient:
                 params["after"] = pagination["endCursor"]
             else:
                 return points
+
+    def get_fuel_energy(self, start_iso: str, end_iso: str) -> list[dict]:
+        """Fuel & Energy report per vehicle over a window: MPG, fuel used, cost,
+        distance, idle time. Fleet-wide in one (paginated) call.
+
+        Instantaneous tank level (the `fuelPercents` stat) isn't reported by
+        these tractors, so this aggregate report is our real fuel signal.
+        Requires the token's Fuel/Reports scope; times are RFC 3339.
+        """
+        reports: list[dict] = []
+        params = {"startDate": start_iso, "endDate": end_iso}
+        while True:
+            page = self._get("/fleet/reports/vehicles/fuel-energy", params)
+            reports.extend((page.get("data") or {}).get("vehicleReports") or [])
+            pagination = page.get("pagination") or {}
+            if pagination.get("hasNextPage") and pagination.get("endCursor"):
+                params["after"] = pagination["endCursor"]
+            else:
+                return reports
 
     def get_latest_dashcam_media(self, vehicle_id: str) -> str | None:
         """Most recent dash cam clip/snapshot URL for a vehicle, if available.

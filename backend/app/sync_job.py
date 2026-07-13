@@ -10,7 +10,7 @@ Samsara webhooks, you can add a `/webhooks/samsara` route that updates the
 same tables on push instead of poll — no other code needs to change.
 """
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from apscheduler.schedulers.background import BackgroundScheduler
 
@@ -163,6 +163,39 @@ def _driver_map(assignments: list[dict]) -> dict[str, dict]:
     return {vid: info for vid, (_, info) in best.items()}
 
 
+FUEL_WINDOW_DAYS = 7  # rolling window for the Fuel & Energy report
+
+
+def _fuel_map(reports: list[dict]) -> dict[str, dict]:
+    """vehicle_id -> normalized fuel economy over the report window (human units)."""
+
+    def gallons(ml):
+        return round(ml / 3785.411784, 1) if isinstance(ml, (int, float)) else None
+
+    def miles(m):
+        return round(m * 0.000621371) if isinstance(m, (int, float)) else None
+
+    out: dict[str, dict] = {}
+    for r in reports:
+        vid = (r.get("vehicle") or {}).get("id")
+        if not vid:
+            continue
+        run = r.get("engineRunTimeDurationMs") or 0
+        idle = r.get("engineIdleTimeDurationMs") or 0
+        mpg = r.get("efficiencyMpge")
+        cost = (r.get("estFuelEnergyCost") or {}).get("amount")
+        out[str(vid)] = {
+            # mpg is 0 for trucks that barely moved (parked/idling) — not meaningful, drop it.
+            "mpg": round(mpg, 1) if isinstance(mpg, (int, float)) and mpg else None,
+            "gallons": gallons(r.get("fuelConsumedMl")),
+            "miles": miles(r.get("distanceTraveledMeters")),
+            "cost_usd": round(cost) if isinstance(cost, (int, float)) else None,
+            "idle_pct": round(idle / run * 100) if run else None,
+            "period_days": FUEL_WINDOW_DAYS,
+        }
+    return out
+
+
 def _hos_map(clocks: list[dict]) -> dict[str, dict]:
     """driver_id -> normalized HOS: duty status + remaining hours + violation flag."""
 
@@ -200,6 +233,16 @@ def sync_vehicles_once():
             # HOS needs the ELD token scope; if it's missing don't fail the sync.
             logger.warning("HOS fetch failed (missing ELD scope?) — skipping HOS this run")
             hos_by_driver = {}
+
+        try:
+            now = datetime.now(timezone.utc)
+            start = now - timedelta(days=FUEL_WINDOW_DAYS)
+            rfc = lambda d: d.strftime("%Y-%m-%dT%H:%M:%SZ")  # noqa: E731
+            fuel_by_vehicle = _fuel_map(samsara_client.get_fuel_energy(rfc(start), rfc(now)))
+        except Exception:
+            # Fuel & Energy needs the Fuel/Reports scope; skip it rather than fail the sync.
+            logger.warning("Fuel & Energy fetch failed (missing scope?) — skipping fuel this run")
+            fuel_by_vehicle = {}
 
         for v in vehicles:
             vehicle_id = str(v["id"])
@@ -241,6 +284,20 @@ def sync_vehicles_once():
             details["drivable"] = alert_level != "critical"
             details["lamps"] = _active_lamps(fault_block)
             details["hos"] = hos_by_driver.get(driver_info.get("id"))
+
+            # Fuel: 7-day economy report + (when the truck reports it) the live
+            # tank level %, converted to gallons via the configured tank size.
+            # Most tractors don't broadcast fuelPercents, so level stays absent.
+            fuel = dict(fuel_by_vehicle.get(vehicle_id) or {})
+            # Samsara quirk: request type is "fuelPercents" (plural) but the
+            # response key is "fuelPercent" (singular), as {time, value}.
+            fp = s.get("fuelPercent")
+            level_pct = fp.get("value") if isinstance(fp, dict) else (fp if isinstance(fp, (int, float)) else None)
+            if level_pct is not None:
+                fuel["level_percent"] = level_pct
+                if settings.fuel_tank_gallons:
+                    fuel["remaining_gallons"] = round(settings.fuel_tank_gallons * level_pct / 100, 1)
+            details["fuel"] = fuel or None
 
             existing.name = v.get("name", vehicle_id)
             existing.driver_name = driver_info.get("name")

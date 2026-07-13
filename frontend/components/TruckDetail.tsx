@@ -56,8 +56,10 @@ function FaultRow({ f, unknown, canDrive }: { f: FaultCode; unknown: string; can
   );
 }
 
+// US number formatting (comma thousands, period decimal) to match the US units
+// used throughout (mph, miles, °F, gallons) — regardless of browser locale.
 const num = (v: number | null | undefined, suffix = "", fallback = "—") =>
-  v != null ? `${v.toLocaleString()}${suffix}` : fallback;
+  v != null ? `${v.toLocaleString("en-US")}${suffix}` : fallback;
 
 const HOS_COLOR: Record<string, string> = {
   driving: "#16a34a",
@@ -187,6 +189,31 @@ export default function TruckDetail({ vehicle, onReportCreated, onClose }: { veh
           <Field label={t("detail.load")} value={num(d.engine_load_percent, "%")} />
         </Grid>
       </Section>
+
+      {d.fuel && (
+        <Section
+          title={
+            <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span>{t("detail.fuel")}</span>
+              {d.fuel.period_days != null && (
+                <span style={{ background: "var(--chip-bg)", color: "var(--chip-text)", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 999 }}>
+                  {d.fuel.period_days}{t("detail.days")}
+                </span>
+              )}
+            </span>
+          }
+        >
+          <Grid>
+            <Field label={t("detail.fuelLevel")} value={num(d.fuel.level_percent, "%")} />
+            <Field label={t("detail.fuelRemaining")} value={num(d.fuel.remaining_gallons, " gal")} />
+            <Field label={t("detail.fuelMpg")} value={num(d.fuel.mpg, " mpg")} />
+            <Field label={t("detail.fuelUsed")} value={num(d.fuel.gallons, " gal")} />
+            <Field label={t("detail.fuelCost")} value={d.fuel.cost_usd != null ? `$${d.fuel.cost_usd.toLocaleString("en-US")}` : "—"} />
+            <Field label={t("detail.fuelDistance")} value={num(d.fuel.miles, " mi")} />
+            <Field label={t("detail.fuelIdle")} value={num(d.fuel.idle_pct, "%")} />
+          </Grid>
+        </Section>
+      )}
 
       <Section title={t("detail.vehicleInfo")}>
         <Grid>

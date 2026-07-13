@@ -59,7 +59,9 @@ export default function ChatWidget() {
                 padding: "8px 12px",
                 borderRadius: 12,
                 background: m.role === "user" ? "#1F4E79" : "#fff",
-                color: m.role === "user" ? "#fff" : "var(--text)",
+                // Assistant bubble is always white → keep its text dark in both
+                // themes (var(--text) would go light on dark theme = invisible).
+                color: m.role === "user" ? "#fff" : "#111827",
                 border: m.role === "user" ? "none" : "1px solid var(--border)",
                 maxWidth: "85%",
                 fontSize: 14,

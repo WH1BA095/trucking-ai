@@ -86,6 +86,16 @@ export type VehicleDetails = {
     break_in_h?: number | null;
     violation?: boolean;
   } | null;
+  fuel?: {
+    mpg?: number | null;
+    gallons?: number | null;
+    miles?: number | null;
+    cost_usd?: number | null;
+    idle_pct?: number | null;
+    period_days?: number | null;
+    level_percent?: number | null;      // live tank level, when the truck reports it
+    remaining_gallons?: number | null;  // level_percent × configured tank size
+  } | null;
 };
 
 export type Vehicle = {
