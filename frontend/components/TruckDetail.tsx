@@ -205,7 +205,16 @@ export default function TruckDetail({ vehicle, onReportCreated, onClose }: { veh
         >
           <Grid>
             <Field label={t("detail.fuelLevel")} value={num(d.fuel.level_percent, "%")} />
-            <Field label={t("detail.fuelRemaining")} value={num(d.fuel.remaining_gallons, " gal")} />
+            <Field
+              label={t("detail.fuelRemaining")}
+              value={
+                d.fuel.remaining_gallons != null
+                  ? d.fuel.tank_gallons
+                    ? `${d.fuel.remaining_gallons.toLocaleString("en-US")} / ${d.fuel.tank_gallons.toLocaleString("en-US")} gal`
+                    : `${d.fuel.remaining_gallons.toLocaleString("en-US")} gal`
+                  : "—"
+              }
+            />
             <Field label={t("detail.fuelMpg")} value={num(d.fuel.mpg, " mpg")} />
             <Field label={t("detail.fuelUsed")} value={num(d.fuel.gallons, " gal")} />
             <Field label={t("detail.fuelCost")} value={d.fuel.cost_usd != null ? `$${d.fuel.cost_usd.toLocaleString("en-US")}` : "—"} />

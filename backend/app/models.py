@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import Column, String, Float, DateTime, ForeignKey, Text, JSON
+from sqlalchemy import Column, String, Float, Integer, DateTime, ForeignKey, Text, JSON
 from sqlalchemy.dialects.postgresql import UUID
 
 from app.database import Base
@@ -92,6 +92,24 @@ class ChatMessage(Base):
     user_id = Column(String, nullable=False, index=True)
     role = Column(String, nullable=False)  # "user" | "assistant"
     content = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=utcnow)
+
+
+class VehicleModelSpec(Base):
+    """Cached typical diesel tank capacity per make/model.
+
+    Resolved once by the LLM (from make/model/year) and reused, so we never
+    re-ask on every sync. Used to turn the reported fuel level % into gallons
+    remaining without assuming one tank size for the whole fleet. Keyed by a
+    normalized "make|model" string.
+    """
+    __tablename__ = "vehicle_model_specs"
+
+    id = Column(String, primary_key=True)   # normalized "make|model"
+    make = Column(String, nullable=True)
+    model = Column(String, nullable=True)
+    tank_gallons = Column(Integer, nullable=False)
+    source = Column(String, nullable=True)  # "llm" | "manual"
     created_at = Column(DateTime, default=utcnow)
 
 

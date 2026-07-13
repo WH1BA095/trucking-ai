@@ -17,6 +17,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from app.config import settings
 from app.database import SessionLocal
 from app.models import Vehicle, VehicleEvent
+from app import fuel_specs
 from app.notifications import notify_admin_critical
 from app.samsara_client import samsara_client
 from app.selftest import record_exception, run_self_test
@@ -244,6 +245,9 @@ def sync_vehicles_once():
             logger.warning("Fuel & Energy fetch failed (missing scope?) — skipping fuel this run")
             fuel_by_vehicle = {}
 
+        # Per-model tank sizes (cached; LLM only fills gaps for unseen models).
+        tank_cache = fuel_specs.load_cache()
+
         for v in vehicles:
             vehicle_id = str(v["id"])
             s = stats.get(v["id"], {})
@@ -295,8 +299,12 @@ def sync_vehicles_once():
             level_pct = fp.get("value") if isinstance(fp, dict) else (fp if isinstance(fp, (int, float)) else None)
             if level_pct is not None:
                 fuel["level_percent"] = level_pct
-                if settings.fuel_tank_gallons:
-                    fuel["remaining_gallons"] = round(settings.fuel_tank_gallons * level_pct / 100, 1)
+                # Tank size inferred per model (LLM, cached); global default is
+                # the fallback when the model is unknown.
+                tank = fuel_specs.resolve(tank_cache, v.get("make"), v.get("model"), v.get("year")) or settings.fuel_tank_gallons
+                if tank:
+                    fuel["remaining_gallons"] = round(tank * level_pct / 100, 1)
+                    fuel["tank_gallons"] = tank
             details["fuel"] = fuel or None
 
             existing.name = v.get("name", vehicle_id)
