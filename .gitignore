@@ -17,5 +17,6 @@ frontend/node_modules/
 frontend/.next/
 node_modules/
 
-# OS / editor
+# OS / editor / local tooling
 .DS_Store
+.claude/
