@@ -26,6 +26,34 @@ type Tab = "map" | "reports" | "alerts";
 const TAB_PERM: Record<Tab, string> = { map: "view_map", reports: "view_reports", alerts: "view_alerts" };
 const ALL_TABS: Tab[] = ["map", "reports", "alerts"];
 
+// Full-screen views that live outside the tabs (reached from the profile).
+type View = null | "profile" | "db" | "logs";
+
+// The app is a single Next route, so navigation state is mirrored in the query
+// string by hand. Without this the browser's back/forward buttons have nothing
+// to step through and just leave the app.
+function navToUrl(tab: Tab, view: View, truck: string | null): string {
+  const p = new URLSearchParams();
+  if (view) {
+    p.set("view", view);
+  } else {
+    p.set("tab", tab);
+    if (truck) p.set("truck", truck);
+  }
+  return `${window.location.pathname}?${p.toString()}`;
+}
+
+function parseNav(search: string): { tab: Tab; view: View; truck: string | null } {
+  const p = new URLSearchParams(search);
+  const tab = p.get("tab");
+  const view = p.get("view");
+  return {
+    tab: (ALL_TABS as string[]).includes(tab ?? "") ? (tab as Tab) : "map",
+    view: view === "profile" || view === "db" || view === "logs" ? view : null,
+    truck: p.get("truck"),
+  };
+}
+
 function Metric({ label, value, color, active, onClick }: { label: string; value: number; color: string; active: boolean; onClick: () => void }) {
   return (
     <button onClick={onClick} style={{ display: "flex", alignItems: "center", gap: 6, border: "none", cursor: "pointer", borderRadius: 999, padding: "3px 10px", background: active ? color : "transparent", transition: "background .15s" }}>
@@ -65,41 +93,96 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
 
 const ctrlBtn: React.CSSProperties = { background: "rgba(255,255,255,.15)", color: "#fff", border: "1px solid rgba(255,255,255,.4)", borderRadius: 8, padding: "6px 10px", fontSize: 13, fontWeight: 700, cursor: "pointer" };
 
+// Truck search — narrows the markers on the map. The header metrics stay
+// fleet-wide on purpose: they're the totals, and double as status filters.
+function SearchBox({ value, onChange, placeholder, width }: { value: string; onChange: (v: string) => void; placeholder: string; width: number | string }) {
+  return (
+    <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+      <input
+        className="hdr-search"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        style={{ width, boxSizing: "border-box", padding: "6px 26px 6px 10px", borderRadius: 8, border: "1px solid rgba(255,255,255,.4)", background: "rgba(255,255,255,.15)", color: "#fff", fontSize: 13, outline: "none" }}
+      />
+      {value && (
+        <button onClick={() => onChange("")} aria-label="Clear search"
+          style={{ position: "absolute", right: 5, background: "none", border: "none", color: "rgba(255,255,255,.85)", cursor: "pointer", display: "flex", padding: 2 }}>
+          <Icon name="close" size={13} />
+        </button>
+      )}
+    </div>
+  );
+}
+
 export default function Home() {
   const { t } = useLang();
   const { user, loading, logout, hasPerm } = useAuth();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-  const [selected, setSelected] = useState<Vehicle | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [route, setRoute] = useState<[number, number][]>([]);
   const [tab, setTab] = useState<Tab>("map");
   const [filter, setFilter] = useState<string | null>(null);
-  const [profileOpen, setProfileOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const [view, setView] = useState<View>(null);
   const [chatOpen, setChatOpen] = useState(false); // mobile: chat is a full-screen overlay
+  const [hydrated, setHydrated] = useState(false); // URL read; safe to start pushing history
   const isMobile = useIsMobile();
 
+  // Derived from the live list, so the open truck panel always shows fresh data.
+  const selected = vehicles.find((v) => v.id === selectedId) ?? null;
   const allowedTabs = ALL_TABS.filter((tb) => hasPerm(TAB_PERM[tb]));
+
+  // --- browser history ---
+  // Read the URL on mount and on every back/forward, and mirror navigation back
+  // into it as the user moves around.
+  useEffect(() => {
+    const apply = () => {
+      const n = parseNav(window.location.search);
+      setTab(n.tab);
+      setView(n.view);
+      setSelectedId(n.truck);
+    };
+    apply();
+    // Normalize "/" to "/?tab=map" up front so the first real navigation pushes
+    // a genuinely new entry instead of rewriting this one.
+    const n = parseNav(window.location.search);
+    window.history.replaceState(null, "", navToUrl(n.tab, n.view, n.truck));
+    setHydrated(true);
+    window.addEventListener("popstate", apply);
+    return () => window.removeEventListener("popstate", apply);
+  }, []);
+
+  // After a popstate the state already matches the URL, so this pushes nothing —
+  // it only fires for navigation the user does inside the app.
+  const navKey = `${tab}|${view}|${selectedId}`;
+  useEffect(() => {
+    if (!hydrated) return;
+    const url = navToUrl(tab, view, selectedId);
+    if (url !== window.location.pathname + window.location.search) {
+      window.history.pushState(null, "", url);
+    }
+  }, [navKey, hydrated]);
 
   useEffect(() => {
     if (user && allowedTabs.length && !allowedTabs.includes(tab)) setTab(allowedTabs[0]);
   }, [user]);
 
   useEffect(() => {
-    if (!selected) {
+    if (!selectedId) {
       setRoute([]);
       return;
     }
     let active = true;
-    fetchRoute(selected.id).then((pts) => active && setRoute(pts)).catch(() => active && setRoute([]));
+    fetchRoute(selectedId).then((pts) => active && setRoute(pts)).catch(() => active && setRoute([]));
     return () => { active = false; };
-  }, [selected?.id]);
+  }, [selectedId]);
 
   useEffect(() => {
     if (!user) return;
     async function load() {
       try {
-        const data = await fetchVehicles();
-        setVehicles(data);
-        setSelected((prev) => (prev ? data.find((v) => v.id === prev.id) ?? prev : prev));
+        setVehicles(await fetchVehicles());
       } catch (e) {
         console.error(e);
       }
@@ -114,26 +197,45 @@ export default function Home() {
 
   const count = (s: string) => vehicles.filter((v) => v.status === s).length;
   const faultCount = vehicles.filter(hasAlert).length;
-  const shown = !filter
+
+  // Search matches the truck number first, but also driver / VIN / plate so you
+  // can find a truck by whatever you happen to know.
+  const q = search.trim().toLowerCase();
+  const matchesSearch = (v: Vehicle) => {
+    if (!q) return true;
+    const d = v.details ?? {};
+    return [v.name, v.driver_name, d.vin, d.license_plate]
+      .some((field) => (field ?? "").toString().toLowerCase().includes(q));
+  };
+
+  const byStatus = !filter
     ? vehicles
     : filter === "fault"
     ? vehicles.filter(hasAlert)
     : vehicles.filter((v) => v.status === filter);
+  const shown = byStatus.filter(matchesSearch);
   const chatWidth = tab === "alerts" ? 520 : tab === "map" && !selected ? 560 : 360;
+
+  const profileSub = view === "db" || view === "logs" ? view : null;
+  const profileProps = {
+    onClose: () => setView(null),
+    sub: profileSub,
+    onSub: (s: "db" | "logs" | null) => setView(s ?? "profile"),
+  };
 
   const mainContent =
     tab === "map" ? (
-      <TruckMap vehicles={shown} selectedId={selected?.id ?? null} route={route} onSelect={setSelected} />
+      <TruckMap vehicles={shown} selectedId={selectedId} route={route} onSelect={(v) => setSelectedId(v.id)} searchKey={q} />
     ) : tab === "reports" ? (
       <ReportsView vehicles={vehicles} />
     ) : (
-      <AlertsView onSelectTruck={(id) => { const v = vehicles.find((x) => x.id === id); if (v) { setSelected(v); setTab("map"); } }} />
+      <AlertsView onSelectTruck={(id) => { setSelectedId(id); setTab("map"); }} />
     );
 
   // --- Phone layout: single column, chat + truck detail as full-screen overlays ---
   if (isMobile) {
-    if (profileOpen) {
-      return <div style={{ height: "100%", background: "var(--bg)" }}><ProfileView onClose={() => setProfileOpen(false)} /></div>;
+    if (view) {
+      return <div style={{ height: "100%", background: "var(--bg)" }}><ProfileView {...profileProps} /></div>;
     }
     return (
       <div style={{ display: "flex", flexDirection: "column", height: "100%", background: "var(--bg)", position: "relative" }}>
@@ -142,7 +244,7 @@ export default function Home() {
             <div style={{ fontWeight: 700, fontSize: 15, display: "flex", alignItems: "center", gap: 6 }}><Icon name="truck" size={18} /> Fleet AI</div>
             <div style={{ flex: 1 }} />
             <ConnStatus />
-            <button onClick={() => setProfileOpen(true)} title={t("profile.title")} style={{ display: "flex", alignItems: "center", background: "rgba(255,255,255,.15)", border: "1px solid rgba(255,255,255,.4)", borderRadius: "50%", padding: 3, color: "#fff", cursor: "pointer" }}>
+            <button onClick={() => setView("profile")} title={t("profile.title")} style={{ display: "flex", alignItems: "center", background: "rgba(255,255,255,.15)", border: "1px solid rgba(255,255,255,.4)", borderRadius: "50%", padding: 3, color: "#fff", cursor: "pointer" }}>
               <span style={{ width: 26, height: 26, borderRadius: "50%", background: "rgba(255,255,255,.25)", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 {user.avatar ? <img src={user.avatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <Icon name="user" size={15} />}
               </span>
@@ -154,6 +256,11 @@ export default function Home() {
               <TabButton key={tb} active={tab === tb} onClick={() => setTab(tb)}>{t(`tab.${tb}`)}</TabButton>
             ))}
           </div>
+          {tab === "map" && (
+            <div style={{ padding: "0 8px 8px" }}>
+              <SearchBox value={search} onChange={setSearch} placeholder={t("search.truck")} width="100%" />
+            </div>
+          )}
         </header>
 
         <div style={{ flex: 1, minHeight: 0 }}>{mainContent}</div>
@@ -161,7 +268,7 @@ export default function Home() {
         {/* Truck detail as a full-screen overlay */}
         {tab === "map" && selected && (
           <div style={{ position: "fixed", inset: 0, zIndex: 1000, background: "var(--panel)" }}>
-            <TruckDetail vehicle={selected} onReportCreated={() => { setSelected(null); setTab("reports"); }} onClose={() => setSelected(null)} />
+            <TruckDetail vehicle={selected} onReportCreated={() => { setSelectedId(null); setTab("reports"); }} onClose={() => setSelectedId(null)} />
           </div>
         )}
 
@@ -192,14 +299,17 @@ export default function Home() {
           <div style={{ fontWeight: 700, fontSize: 16, display: "flex", alignItems: "center", gap: 8 }}><Icon name="truck" size={18} /> {t("app.title")}</div>
           <div style={{ display: "flex", gap: 4 }}>
             {allowedTabs.map((tb) => (
-              <TabButton key={tb} active={tab === tb && !profileOpen} onClick={() => { setTab(tb); setProfileOpen(false); }}>{t(`tab.${tb}`)}</TabButton>
+              <TabButton key={tb} active={tab === tb && !view} onClick={() => { setTab(tb); setView(null); }}>{t(`tab.${tb}`)}</TabButton>
             ))}
           </div>
           <Clock />
           <ConnStatus />
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          {!profileOpen && tab === "map" && (
+          {!view && tab === "map" && (
+            <SearchBox value={search} onChange={setSearch} placeholder={t("search.truck")} width={200} />
+          )}
+          {!view && tab === "map" && (
             <div style={{ display: "flex", gap: 4, background: "var(--panel)", padding: "3px 6px", borderRadius: 999 }}>
               <Metric label={t("metric.total")} value={vehicles.length} color="#1F4E79" active={filter === null} onClick={() => setFilter(null)} />
               <Metric label={t("metric.moving")} value={count("moving")} color={STATUS_META.moving.color} active={filter === "moving"} onClick={() => setFilter("moving")} />
@@ -208,7 +318,7 @@ export default function Home() {
             </div>
           )}
           {/* Account (timezone / 12-24h / language / theme moved to profile settings) */}
-          <button onClick={() => setProfileOpen(true)} title={t("profile.title")} style={{ display: "flex", alignItems: "center", gap: 8, background: "rgba(255,255,255,.15)", border: "1px solid rgba(255,255,255,.4)", borderRadius: 999, padding: "3px 10px 3px 3px", color: "#fff", cursor: "pointer" }}>
+          <button onClick={() => setView("profile")} title={t("profile.title")} style={{ display: "flex", alignItems: "center", gap: 8, background: "rgba(255,255,255,.15)", border: "1px solid rgba(255,255,255,.4)", borderRadius: 999, padding: "3px 10px 3px 3px", color: "#fff", cursor: "pointer" }}>
             <span style={{ width: 26, height: 26, borderRadius: "50%", background: "rgba(255,255,255,.25)", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>
               {user.avatar ? <img src={user.avatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <Icon name="user" size={15} />}
             </span>
@@ -219,9 +329,9 @@ export default function Home() {
       </header>
 
       <div style={{ display: "flex", flex: 1, minHeight: 0 }}>
-        {profileOpen ? (
+        {view ? (
           <div style={{ flex: 1, minWidth: 0, background: "var(--bg)" }}>
-            <ProfileView onClose={() => setProfileOpen(false)} />
+            <ProfileView {...profileProps} />
           </div>
         ) : (
           <>
@@ -229,12 +339,12 @@ export default function Home() {
               {tab === "map" ? (
                 <>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <TruckMap vehicles={shown} selectedId={selected?.id ?? null} route={route} onSelect={setSelected} />
+                    <TruckMap vehicles={shown} selectedId={selectedId} route={route} onSelect={(v) => setSelectedId(v.id)} searchKey={q} />
                   </div>
                   {/* Detail panel slides in from the right when a truck is selected */}
                   <div style={{ width: selected ? 340 : 0, flexShrink: 0, overflow: "hidden", transition: "width .25s ease", display: "flex", justifyContent: "flex-end" }}>
                     <div style={{ width: 340, height: "100%", background: "var(--panel)", borderLeft: "1px solid var(--border)" }}>
-                      <TruckDetail vehicle={selected} onReportCreated={() => setTab("reports")} onClose={() => setSelected(null)} />
+                      <TruckDetail vehicle={selected} onReportCreated={() => setTab("reports")} onClose={() => setSelectedId(null)} />
                     </div>
                   </div>
                 </>
@@ -242,7 +352,7 @@ export default function Home() {
                 <div style={{ flex: 1, minWidth: 0, background: "var(--bg)" }}><ReportsView vehicles={vehicles} /></div>
               ) : (
                 <div style={{ flex: 1, minWidth: 0, background: "var(--bg)" }}>
-                  <AlertsView onSelectTruck={(id) => { const v = vehicles.find((x) => x.id === id); if (v) { setSelected(v); setTab("map"); } }} />
+                  <AlertsView onSelectTruck={(id) => { setSelectedId(id); setTab("map"); }} />
                 </div>
               )}
             </div>

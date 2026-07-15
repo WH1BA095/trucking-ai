@@ -45,6 +45,11 @@ html, body {
   height: 100%;
 }
 
+/* Search input sits on the dark blue header — inline styles can't set ::placeholder. */
+.hdr-search::placeholder {
+  color: rgba(255, 255, 255, 0.6);
+}
+
 body {
   background: var(--bg);
   color: var(--text);

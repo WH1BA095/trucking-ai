@@ -7,7 +7,7 @@ parameters, and the whole router is gated behind settings.admin_enabled. It is
 read-only — no writes. Turn it off (ADMIN_ENABLED=false) before hosting until
 there's real auth, since it exposes every table (chat history, raw payloads).
 """
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy import inspect, text
 
@@ -51,19 +51,48 @@ def list_tables():
 
 
 @router.get("/tables/{table}")
-def get_table(table: str, limit: int = Query(100, ge=1, le=500), offset: int = Query(0, ge=0)):
-    """Columns + a page of rows for one table (newest-ish first when possible)."""
+def get_table(
+    table: str,
+    request: Request,
+    limit: int = Query(100, ge=1, le=500),
+    offset: int = Query(0, ge=0),
+):
+    """Columns + a page of rows for one table (newest-ish first when possible).
+
+    Optional per-column filters arrive as `f.<column>=value` and match a
+    case-insensitive substring of the column's text form, so you can find a row
+    by id/name instead of paging through the table by eye. Filtering happens in
+    SQL across the whole table, not just the current page.
+
+    Safety: column names are validated against the live schema before being
+    quoted into the query, and every value is a bound parameter.
+    """
     _guard()
     if table not in _table_names():
         raise HTTPException(status_code=404, detail="Unknown table")
 
     columns = [c["name"] for c in inspect(engine).get_columns(table)]
+
+    conditions: list[str] = []
+    filter_params: dict = {}
+    for key, value in request.query_params.items():
+        if not key.startswith("f.") or not value.strip():
+            continue
+        column = key[2:]
+        if column not in columns:
+            raise HTTPException(status_code=400, detail=f"Unknown column: {column}")
+        name = f"flt_{len(conditions)}"
+        # CAST(... AS TEXT) so numeric/uuid/json/timestamp columns are searchable too.
+        conditions.append(f'CAST("{column}" AS TEXT) ILIKE :{name}')
+        filter_params[name] = f"%{value.strip()}%"
+    where = f" WHERE {' AND '.join(conditions)}" if conditions else ""
+
     order = ' ORDER BY created_at DESC' if "created_at" in columns else ""
     with engine.connect() as conn:
-        total = conn.execute(text(f'SELECT COUNT(*) FROM "{table}"')).scalar()
+        total = conn.execute(text(f'SELECT COUNT(*) FROM "{table}"{where}'), filter_params).scalar()
         rows = conn.execute(
-            text(f'SELECT * FROM "{table}"{order} LIMIT :limit OFFSET :offset'),
-            {"limit": limit, "offset": offset},
+            text(f'SELECT * FROM "{table}"{where}{order} LIMIT :limit OFFSET :offset'),
+            {**filter_params, "limit": limit, "offset": offset},
         ).mappings().all()
 
     return {

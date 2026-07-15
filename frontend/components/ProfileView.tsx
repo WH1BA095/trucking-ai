@@ -68,7 +68,13 @@ function PermChecks({ perms, value, onChange, t }: { perms: string[]; value: str
   );
 }
 
-export default function ProfileView({ onClose }: { onClose: () => void }) {
+// `sub` is controlled by the page so the DB / Logs screens get their own URL and
+// the browser's back button steps out of them properly.
+export default function ProfileView({ onClose, sub, onSub }: {
+  onClose: () => void;
+  sub: "db" | "logs" | null;
+  onSub: (s: "db" | "logs" | null) => void;
+}) {
   const { user, setUser, hasPerm } = useAuth();
   const { t, lang, setLang } = useLang();
   const { theme, toggle } = useTheme();
@@ -79,7 +85,6 @@ export default function ProfileView({ onClose }: { onClose: () => void }) {
   // from the main nav. `sub` selects which full-screen tool is open, if any.
   const canViewLogs = hasPerm("view_logs");
   const canViewDb = hasPerm("view_db");
-  const [sub, setSub] = useState<null | "logs" | "db">(null);
 
   // --- my profile ---
   const [username, setUsername] = useState(user?.username ?? "");
@@ -151,7 +156,7 @@ export default function ProfileView({ onClose }: { onClose: () => void }) {
     return (
       <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
         <div style={{ padding: "12px 24px", borderBottom: "1px solid var(--border)", flexShrink: 0 }}>
-          <button onClick={() => setSub(null)} style={{ background: "transparent", border: "none", color: "var(--muted)", cursor: "pointer", fontSize: 14 }}>
+          <button onClick={() => onSub(null)} style={{ background: "transparent", border: "none", color: "var(--muted)", cursor: "pointer", fontSize: 14 }}>
             ← {t("profile.title")}
           </button>
         </div>
@@ -222,7 +227,7 @@ export default function ProfileView({ onClose }: { onClose: () => void }) {
           <Card title={t("tab.admin")}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
               <span style={{ fontSize: 13, color: "var(--muted)" }}>{t("db.menuHint")}</span>
-              <button onClick={() => setSub("db")} style={btn("#1F4E79")}>{t("log.menuOpen")}</button>
+              <button onClick={() => onSub("db")} style={btn("#1F4E79")}>{t("log.menuOpen")}</button>
             </div>
           </Card>
         )}
@@ -231,7 +236,7 @@ export default function ProfileView({ onClose }: { onClose: () => void }) {
           <Card title="Logs / Tests">
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
               <span style={{ fontSize: 13, color: "var(--muted)" }}>{t("log.menuHint")}</span>
-              <button onClick={() => setSub("logs")} style={btn("#1F4E79")}>{t("log.menuOpen")}</button>
+              <button onClick={() => onSub("logs")} style={btn("#1F4E79")}>{t("log.menuOpen")}</button>
             </div>
           </Card>
         )}

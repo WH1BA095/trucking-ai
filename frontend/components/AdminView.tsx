@@ -19,6 +19,11 @@ export default function AdminView() {
   const [data, setData] = useState<TableData | null>(null);
   const [offset, setOffset] = useState(0);
   const [loading, setLoading] = useState(false);
+  // Per-column filters. `filters` tracks typing; `applied` is debounced so we
+  // don't fire a query on every keystroke. Filtering runs in SQL server-side,
+  // so it finds rows on any page, not just the one on screen.
+  const [filters, setFilters] = useState<Record<string, string>>({});
+  const [applied, setApplied] = useState<Record<string, string>>({});
 
   useEffect(() => {
     fetchTables().then((ts) => {
@@ -28,15 +33,28 @@ export default function AdminView() {
   }, []);
 
   useEffect(() => {
+    const id = setTimeout(() => setApplied(filters), 300);
+    return () => clearTimeout(id);
+  }, [filters]);
+
+  useEffect(() => {
+    setOffset(0); // a new filter means we're back on page 1
+  }, [applied]);
+
+  useEffect(() => {
     if (!active) return;
     setLoading(true);
-    fetchTableRows(active, PAGE, offset).then(setData).catch(console.error).finally(() => setLoading(false));
-  }, [active, offset]);
+    fetchTableRows(active, PAGE, offset, applied).then(setData).catch(console.error).finally(() => setLoading(false));
+  }, [active, offset, applied]);
 
   function selectTable(name: string) {
     setActive(name);
     setOffset(0);
+    setFilters({});
+    setApplied({});
   }
+
+  const hasFilters = Object.values(filters).some((v) => v.trim());
 
   return (
     <div style={{ display: "flex", height: "100%" }}>
@@ -68,6 +86,12 @@ export default function AdminView() {
           <div style={{ fontFamily: "ui-monospace, monospace", fontWeight: 700, color: "var(--text)" }}>{active}</div>
           {data && (
             <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: "var(--muted)" }}>
+              {hasFilters && (
+                <button onClick={() => setFilters({})}
+                  style={{ padding: "4px 10px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--panel)", color: "var(--text)", cursor: "pointer" }}>
+                  {t("admin.clearFilters")}
+                </button>
+              )}
               <span>{data.total} {t("admin.rows")}</span>
               <button onClick={() => setOffset(Math.max(0, offset - PAGE))} disabled={offset === 0}
                 style={{ padding: "4px 10px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--panel)", color: "var(--text)", cursor: offset === 0 ? "default" : "pointer", opacity: offset === 0 ? 0.5 : 1 }}>
@@ -90,8 +114,21 @@ export default function AdminView() {
               <thead>
                 <tr>
                   {data.columns.map((c) => (
-                    <th key={c} style={{ position: "sticky", top: 0, background: "var(--panel2)", color: "var(--text)", textAlign: "left", padding: "8px 12px", borderBottom: "2px solid var(--border)", fontFamily: "ui-monospace, monospace", whiteSpace: "nowrap" }}>
+                    <th key={c} style={{ position: "sticky", top: 0, zIndex: 2, height: 34, boxSizing: "border-box", background: "var(--panel2)", color: "var(--text)", textAlign: "left", padding: "8px 12px", fontFamily: "ui-monospace, monospace", whiteSpace: "nowrap" }}>
                       {c}
+                    </th>
+                  ))}
+                </tr>
+                {/* One filter box per column — type an id/name to find the row */}
+                <tr>
+                  {data.columns.map((c) => (
+                    <th key={c} style={{ position: "sticky", top: 34, zIndex: 2, background: "var(--panel2)", padding: "4px 8px 6px", borderBottom: "2px solid var(--border)" }}>
+                      <input
+                        value={filters[c] ?? ""}
+                        onChange={(e) => setFilters((f) => ({ ...f, [c]: e.target.value }))}
+                        placeholder={t("admin.filter")}
+                        style={{ width: "100%", minWidth: 90, boxSizing: "border-box", padding: "3px 7px", borderRadius: 5, border: `1px solid ${filters[c]?.trim() ? "#1F4E79" : "var(--border)"}`, background: "var(--panel)", color: "var(--text)", fontSize: 12, outline: "none", fontWeight: 400 }}
+                      />
                     </th>
                   ))}
                 </tr>
@@ -111,6 +148,9 @@ export default function AdminView() {
                 ))}
               </tbody>
             </table>
+          )}
+          {!loading && data && data.rows.length === 0 && (
+            <div style={{ padding: 24, color: "var(--muted)", fontSize: 13 }}>{t("search.noMatch")}</div>
           )}
         </div>
       </div>

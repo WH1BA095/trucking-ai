@@ -247,8 +247,19 @@ export async function generateAllReports(): Promise<{ started: boolean; count: n
 export async function fetchTables(): Promise<TableInfo[]> {
   return apiFetch("/admin/tables");
 }
-export async function fetchTableRows(table: string, limit = 100, offset = 0): Promise<TableData> {
-  return apiFetch(`/admin/tables/${table}?limit=${limit}&offset=${offset}`);
+// `filters` is {column: value} — sent as f.<column>=value and matched in SQL
+// across the whole table (substring, case-insensitive), not just this page.
+export async function fetchTableRows(
+  table: string,
+  limit = 100,
+  offset = 0,
+  filters: Record<string, string> = {},
+): Promise<TableData> {
+  const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
+  for (const [col, val] of Object.entries(filters)) {
+    if (val.trim()) params.set(`f.${col}`, val.trim());
+  }
+  return apiFetch(`/admin/tables/${table}?${params.toString()}`);
 }
 export async function fetchSystemLogs(kind?: "scheduled_test" | "runtime_error"): Promise<SystemLog[]> {
   return apiFetch(`/system/logs${kind ? `?kind=${kind}` : ""}`);

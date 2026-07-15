@@ -67,16 +67,34 @@ function FitToFleet({ points }: { points: [number, number][] }) {
   return null;
 }
 
+// Zoom to whatever the search narrowed us down to. Deliberately keyed on the
+// query alone: it must not re-fit on every 30s position refresh, only when the
+// user actually changes what they're searching for.
+function FitToSearch({ points, searchKey }: { points: [number, number][]; searchKey: string }) {
+  const map = useMap();
+  const latest = useRef(points);
+  latest.current = points;
+  useEffect(() => {
+    if (searchKey && latest.current.length) {
+      map.fitBounds(latest.current, { padding: [80, 80], maxZoom: 12 });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchKey, map]);
+  return null;
+}
+
 export default function TruckMap({
   vehicles,
   selectedId,
   route,
   onSelect,
+  searchKey = "",
 }: {
   vehicles: Vehicle[];
   selectedId: string | null;
   route?: [number, number][];
   onSelect: (v: Vehicle) => void;
+  searchKey?: string;
 }) {
   const { t } = useLang();
   const positioned = vehicles.filter((v) => v.latitude != null && v.longitude != null);
@@ -89,6 +107,7 @@ export default function TruckMap({
         attribution="&copy; OpenStreetMap contributors"
       />
       <FitToFleet points={points} />
+      <FitToSearch points={points} searchKey={searchKey} />
       {route && route.length > 1 && (
         <Polyline positions={route} pathOptions={{ color: "#1F4E79", weight: 4, opacity: 0.75 }} />
       )}

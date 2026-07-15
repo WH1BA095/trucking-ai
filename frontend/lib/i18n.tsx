@@ -66,6 +66,10 @@ const DICT: Record<string, { en: string; ru: string }> = {
   "metric.idle": { en: "Idle", ru: "Стоят" },
   "metric.fault": { en: "Fault", ru: "Неисправность" },
   "filter.reset": { en: "Reset", ru: "Сбросить" },
+  "search.truck": { en: "Search truck…", ru: "Поиск трака…" },
+  "search.noMatch": { en: "Nothing found", ru: "Ничего не найдено" },
+  "admin.filter": { en: "filter…", ru: "фильтр…" },
+  "admin.clearFilters": { en: "Clear filters", ru: "Сбросить фильтры" },
 
   "detail.selectPrompt": { en: "Select a truck on the map to see its details.", ru: "Выберите трак на карте, чтобы увидеть детали." },
   "detail.truck": { en: "Truck", ru: "Трак" },
