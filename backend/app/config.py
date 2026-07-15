@@ -31,13 +31,16 @@ class Settings(BaseSettings):
     samsara_api_token: str = ""
     samsara_base_url: str = "https://api.samsara.com"
 
-    # Alvys TMS (loads/trips). OAuth2 client-credentials — fill client id/secret
-    # from an Alvys Admin application. Base/token URLs are Alvys' defaults.
+    # Alvys TMS (loads/trips). OAuth2 client-credentials — generate the client
+    # id/secret yourself in Alvys under Profile > API (Admin/Partner Admin role).
+    # Confirmed with Alvys (2026-07): the "public" part belongs in the *audience*,
+    # not the base URL; resource paths live under /api/p/v{version}/...
     alvys_client_id: str = ""
     alvys_client_secret: str = ""
     alvys_token_url: str = "https://auth.alvys.com/oauth/token"
-    alvys_base_url: str = "https://api.alvys.com/public"
+    alvys_base_url: str = "https://api.alvys.com"
     alvys_audience: str = "https://api.alvys.com/public/"
+    alvys_api_version: str = "1.0"  # some newer endpoints are on 2.0
     # Dash cam media needs the "Media Retrieval" token scope; off by default so
     # we don't fire a per-vehicle request every sync that just 401s.
     samsara_fetch_media: bool = False
